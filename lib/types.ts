@@ -37,6 +37,17 @@ export interface HierarchicalResult {
   comment_num?: number;
 }
 
+// Filter state for FilterPanel
+export interface FilterState {
+  textSearch: string;
+  maxDensity: number;
+  minValue: number;
+  attributeFilters: Record<string, string[]>;
+  numericRanges: Record<string, [number, number]>;
+  enabledRanges: Record<string, boolean>;
+  includeEmptyValues: Record<string, boolean>;
+}
+
 // Domain entity
 
 export interface Report {

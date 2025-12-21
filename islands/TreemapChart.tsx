@@ -2,9 +2,10 @@ import { useEffect, useRef } from "preact/hooks";
 import type { Argument, Cluster } from "@/lib/types.ts";
 import { CHART_HEIGHT_CLASS, CHART_HEIGHT_FULL } from "@/lib/constants.ts";
 import type {
+  PlotlyConfig,
+  PlotlyHTMLElement,
   PlotlyTreemapData,
   PlotlyTreemapLayout,
-  PlotlyConfig,
 } from "@/lib/plotly-types.ts";
 
 // Declare Plotly type on globalThis
@@ -45,7 +46,8 @@ function convertArgumentToNode(argument: Argument): TreemapNode {
     label: argument.argument,
     takeaway: "",
     value: 1,
-    parent: argument.cluster_ids[2] || argument.cluster_ids[1] || argument.cluster_ids[0],
+    parent: argument.cluster_ids[2] || argument.cluster_ids[1] ||
+      argument.cluster_ids[0],
     density_rank_percentile: 0,
   };
 }
@@ -79,7 +81,9 @@ export default function TreemapChart({
       }
       // 密度フィルタ（最深レベルのクラスタIDで判定）
       if (isClusterFiltering) {
-        const deepestClusterId = arg.cluster_ids.find((id) => id.startsWith(`${maxLevel}_`));
+        const deepestClusterId = arg.cluster_ids.find((id) =>
+          id.startsWith(`${maxLevel}_`)
+        );
         if (deepestClusterId && !filteredClusterIds.has(deepestClusterId)) {
           return { ...node, filtered: true };
         }
@@ -168,9 +172,12 @@ export default function TreemapChart({
   };
 
   // Handle click to zoom
-  const handleClick = (event: { points: Array<{ pointNumber: number; data: { ids: string[] } }> }) => {
+  const handleClick = (
+    event: { points: Array<{ pointNumber: number; data: { ids: string[] } }> },
+  ) => {
     const clickedNode = event.points[0];
-    const newLevel = clickedNode.data.ids[clickedNode.pointNumber]?.toString() || "0";
+    const newLevel =
+      clickedNode.data.ids[clickedNode.pointNumber]?.toString() || "0";
     onTreeZoom(newLevel);
   };
 
@@ -179,7 +186,9 @@ export default function TreemapChart({
     const panels = document.querySelectorAll(".treemap > .slice > .surface");
     const leafColor = getColor(panels[panels.length - 1]);
     if (panels.length > 1) darkenColor(panels[0], leafColor);
-    const pathbars = document.querySelectorAll(".treemap > .pathbar > .surface");
+    const pathbars = document.querySelectorAll(
+      ".treemap > .pathbar > .surface",
+    );
     for (const pathbar of pathbars) darkenColor(pathbar, leafColor);
   };
 
@@ -216,16 +225,16 @@ export default function TreemapChart({
     const plotElement = plotRef.current;
 
     if (!initializedRef.current) {
-      Plotly.newPlot(plotElement, buildTreemapData(), layout, config).then(() => {
-        // Add click event listener
-        // @ts-ignore - Plotly adds 'on' method to element
-        plotElement.on?.("plotly_click", handleClick);
-        // @ts-ignore
-        plotElement.on?.("plotly_hover", darkenPathbar);
-        // @ts-ignore
-        plotElement.on?.("plotly_unhover", darkenPathbar);
-        darkenPathbar();
-      });
+      Plotly.newPlot(plotElement, buildTreemapData(), layout, config).then(
+        () => {
+          // Add click event listener
+          const plotlyElement = plotElement as PlotlyHTMLElement;
+          plotlyElement.on("plotly_click", handleClick);
+          plotlyElement.on("plotly_hover", darkenPathbar);
+          plotlyElement.on("plotly_unhover", darkenPathbar);
+          darkenPathbar();
+        },
+      );
       initializedRef.current = true;
     } else {
       Plotly.react(plotElement, buildTreemapData(), layout).then(() => {

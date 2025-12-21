@@ -6,5 +6,5 @@ export const CHART_HEIGHT_FULL = "h-full";
 export type ChartType = "scatterAll" | "scatterDensity" | "treemap";
 
 // Default filter values
-export const DEFAULT_MAX_DENSITY = 1;
-export const DEFAULT_MIN_VALUE = 1;
+export const DEFAULT_MAX_DENSITY = 0.2;
+export const DEFAULT_MIN_VALUE = 5;

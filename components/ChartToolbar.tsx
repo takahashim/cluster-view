@@ -22,21 +22,27 @@ export default function ChartToolbar({
       <div class="join">
         <button
           type="button"
-          class={`btn btn-sm join-item ${chartType === "scatterAll" ? "btn-primary" : "btn-ghost"}`}
+          class={`btn btn-sm join-item ${
+            chartType === "scatterAll" ? "btn-primary" : "btn-ghost"
+          }`}
           onClick={() => onChartTypeChange("scatterAll")}
         >
           全体
         </button>
         <button
           type="button"
-          class={`btn btn-sm join-item ${chartType === "scatterDensity" ? "btn-primary" : "btn-ghost"}`}
+          class={`btn btn-sm join-item ${
+            chartType === "scatterDensity" ? "btn-primary" : "btn-ghost"
+          }`}
           onClick={() => onChartTypeChange("scatterDensity")}
         >
           密度
         </button>
         <button
           type="button"
-          class={`btn btn-sm join-item ${chartType === "treemap" ? "btn-primary" : "btn-ghost"}`}
+          class={`btn btn-sm join-item ${
+            chartType === "treemap" ? "btn-primary" : "btn-ghost"
+          }`}
           onClick={() => onChartTypeChange("treemap")}
         >
           ツリー

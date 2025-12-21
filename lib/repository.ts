@@ -84,7 +84,12 @@ export async function regenerateShareToken(
     shareToken: newToken,
   };
 
-  const success = await store.atomicUpdateToken(id, oldToken, newToken, updated);
+  const success = await store.atomicUpdateToken(
+    id,
+    oldToken,
+    newToken,
+    updated,
+  );
   return success ? newToken : null;
 }
 

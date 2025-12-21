@@ -1,6 +1,9 @@
 import { define } from "@/utils.ts";
 import { createReport } from "@/lib/repository.ts";
-import { validateHierarchicalResult, ValidationError } from "@/lib/validation.ts";
+import {
+  validateHierarchicalResult,
+  ValidationError,
+} from "@/lib/validation.ts";
 
 export const handler = define.handlers({
   async POST(ctx) {

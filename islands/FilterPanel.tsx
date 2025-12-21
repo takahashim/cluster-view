@@ -1,5 +1,19 @@
-import { useSignal, useComputed } from "@preact/signals";
-import type { Argument, Cluster } from "@/lib/types.ts";
+import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
+import type { Argument, Cluster, FilterState } from "@/lib/types.ts";
+import { DEFAULT_MAX_DENSITY, DEFAULT_MIN_VALUE } from "@/lib/constants.ts";
+
+// デフォルトのフィルタ状態を作成
+export function createDefaultFilterState(): FilterState {
+  return {
+    textSearch: "",
+    maxDensity: DEFAULT_MAX_DENSITY,
+    minValue: DEFAULT_MIN_VALUE,
+    attributeFilters: {},
+    numericRanges: {},
+    enabledRanges: {},
+    includeEmptyValues: {},
+  };
+}
 
 // 属性のメタデータ
 interface AttributeMeta {
@@ -8,14 +22,6 @@ interface AttributeMeta {
   values: string[];
   valueCounts: Record<string, number>;
   numericRange?: [number, number];
-}
-
-// フィルタ状態
-export interface FilterState {
-  textSearch: string;
-  maxDensity: number;
-  minValue: number;
-  attributeFilters: Record<string, string[]>;
 }
 
 interface FilterPanelProps {
@@ -57,14 +63,21 @@ export default function FilterPanel({
           };
         }
         attrMap[name].valueSet.add(value);
-        attrMap[name].valueCounts.set(value, (attrMap[name].valueCounts.get(value) ?? 0) + 1);
+        attrMap[name].valueCounts.set(
+          value,
+          (attrMap[name].valueCounts.get(value) ?? 0) + 1,
+        );
         if (value.trim() !== "") {
           const num = Number(value);
           if (Number.isNaN(num)) {
             attrMap[name].isNumeric = false;
           } else if (attrMap[name].isNumeric) {
-            if (attrMap[name].min === undefined || num < attrMap[name].min) attrMap[name].min = num;
-            if (attrMap[name].max === undefined || num > attrMap[name].max) attrMap[name].max = num;
+            if (attrMap[name].min === undefined || num < attrMap[name].min) {
+              attrMap[name].min = num;
+            }
+            if (attrMap[name].max === undefined || num > attrMap[name].max) {
+              attrMap[name].max = num;
+            }
           }
         }
       }
@@ -75,7 +88,10 @@ export default function FilterPanel({
       const valueCounts: Record<string, number> = {};
       for (const v of values) valueCounts[v] = info.valueCounts.get(v) ?? 0;
       let numericRange: [number, number] | undefined = undefined;
-      if (info.isNumeric && values.length > 0 && info.min !== undefined && info.max !== undefined) {
+      if (
+        info.isNumeric && values.length > 0 && info.min !== undefined &&
+        info.max !== undefined
+      ) {
         numericRange = [info.min, info.max];
       }
       return {
@@ -89,13 +105,45 @@ export default function FilterPanel({
   });
 
   // 密度フィルタが利用可能か（データにdensity_rank_percentileがあるか）
-  const hasDensityData = clusters.some((c) => c.density_rank_percentile !== undefined);
+  const hasDensityData = clusters.some((c) =>
+    c.density_rank_percentile !== undefined
+  );
 
   // ローカル状態（編集中）
   const localTextSearch = useSignal(filterState.textSearch);
   const localMaxDensity = useSignal(filterState.maxDensity);
   const localMinValue = useSignal(filterState.minValue);
-  const localAttributeFilters = useSignal<Record<string, string[]>>({ ...filterState.attributeFilters });
+  const localAttributeFilters = useSignal<Record<string, string[]>>({
+    ...filterState.attributeFilters,
+  });
+  const localNumericRanges = useSignal<Record<string, [number, number]>>({
+    ...filterState.numericRanges,
+  });
+  const localEnabledRanges = useSignal<Record<string, boolean>>({
+    ...filterState.enabledRanges,
+  });
+  const localIncludeEmptyValues = useSignal<Record<string, boolean>>({
+    ...filterState.includeEmptyValues,
+  });
+
+  // 親のfilterStateが変更されたらローカル状態を同期
+  // (例: ReportViewの「クリア」ボタンが押された場合)
+  const syncLocalState = (state: FilterState) => {
+    localTextSearch.value = state.textSearch;
+    localMaxDensity.value = state.maxDensity;
+    localMinValue.value = state.minValue;
+    localAttributeFilters.value = { ...state.attributeFilters };
+    localNumericRanges.value = { ...state.numericRanges };
+    localEnabledRanges.value = { ...state.enabledRanges };
+    localIncludeEmptyValues.value = { ...state.includeEmptyValues };
+  };
+
+  // モーダルが開かれたときに親の状態を同期
+  useSignalEffect(() => {
+    if (isOpen) {
+      syncLocalState(filterState);
+    }
+  });
 
   const handleApply = () => {
     onFilterChange({
@@ -103,21 +151,17 @@ export default function FilterPanel({
       maxDensity: localMaxDensity.value,
       minValue: localMinValue.value,
       attributeFilters: localAttributeFilters.value,
+      numericRanges: localNumericRanges.value,
+      enabledRanges: localEnabledRanges.value,
+      includeEmptyValues: localIncludeEmptyValues.value,
     });
     onClose();
   };
 
   const handleReset = () => {
-    localTextSearch.value = "";
-    localMaxDensity.value = 1;
-    localMinValue.value = 1;
-    localAttributeFilters.value = {};
-    onFilterChange({
-      textSearch: "",
-      maxDensity: 1,
-      minValue: 1,
-      attributeFilters: {},
-    });
+    const defaultState = createDefaultFilterState();
+    syncLocalState(defaultState);
+    onFilterChange(defaultState);
   };
 
   const toggleAttributeValue = (attrName: string, value: string) => {
@@ -169,7 +213,8 @@ export default function FilterPanel({
               <div class="form-control mb-4">
                 <label class="label">
                   <span class="label-text">
-                    密度ランク上位 {Math.round(localMaxDensity.value * 100)}% を表示
+                    密度ランク上位{" "}
+                    {Math.round(localMaxDensity.value * 100)}% を表示
                   </span>
                 </label>
                 <input
@@ -180,7 +225,9 @@ export default function FilterPanel({
                   value={localMaxDensity.value}
                   class="range range-primary range-sm"
                   onInput={(e) => {
-                    localMaxDensity.value = parseFloat((e.target as HTMLInputElement).value);
+                    localMaxDensity.value = parseFloat(
+                      (e.target as HTMLInputElement).value,
+                    );
                   }}
                 />
                 <div class="flex justify-between text-xs px-1 mt-1">
@@ -192,7 +239,9 @@ export default function FilterPanel({
 
               <div class="form-control">
                 <label class="label">
-                  <span class="label-text">最小件数: {localMinValue.value}件以上</span>
+                  <span class="label-text">
+                    最小件数: {localMinValue.value}件以上
+                  </span>
                 </label>
                 <input
                   type="range"
@@ -202,7 +251,10 @@ export default function FilterPanel({
                   value={localMinValue.value}
                   class="range range-secondary range-sm"
                   onInput={(e) => {
-                    localMinValue.value = parseInt((e.target as HTMLInputElement).value, 10);
+                    localMinValue.value = parseInt(
+                      (e.target as HTMLInputElement).value,
+                      10,
+                    );
                   }}
                 />
                 <div class="flex justify-between text-xs px-1 mt-1">
@@ -215,21 +267,27 @@ export default function FilterPanel({
           </div>
         )}
 
-        {/* 属性フィルタ */}
-        {attributeMetas.value.length > 0 && (
+        {/* カテゴリ属性フィルタ */}
+        {attributeMetas.value.filter((attr) =>
+              attr.type === "categorical" && attr.values.length <= 20
+            ).length > 0 && (
           <div class="mb-6">
             <label class="label">
-              <span class="label-text font-semibold">属性フィルタ</span>
+              <span class="label-text font-semibold">カテゴリ属性フィルタ</span>
             </label>
             <div class="space-y-4">
               {attributeMetas.value
-                .filter((attr) => attr.type === "categorical" && attr.values.length <= 20)
+                .filter((attr) =>
+                  attr.type === "categorical" && attr.values.length <= 20
+                )
                 .map((attr) => (
                   <div key={attr.name} class="bg-base-200 rounded-lg p-4">
                     <div class="font-medium mb-2">{attr.name}</div>
                     <div class="flex flex-wrap gap-2">
                       {attr.values.map((value) => {
-                        const isChecked = (localAttributeFilters.value[attr.name] || []).includes(value);
+                        const isChecked =
+                          (localAttributeFilters.value[attr.name] || [])
+                            .includes(value);
                         return (
                           <label
                             key={value}
@@ -243,7 +301,8 @@ export default function FilterPanel({
                               type="checkbox"
                               class="hidden"
                               checked={isChecked}
-                              onChange={() => toggleAttributeValue(attr.name, value)}
+                              onChange={() =>
+                                toggleAttributeValue(attr.name, value)}
                             />
                             {value} ({attr.valueCounts[value]})
                           </label>
@@ -256,9 +315,145 @@ export default function FilterPanel({
           </div>
         )}
 
+        {/* 数値範囲フィルタ */}
+        {attributeMetas.value.filter((attr) =>
+              attr.type === "numeric" && attr.numericRange
+            ).length > 0 && (
+          <div class="mb-6">
+            <label class="label">
+              <span class="label-text font-semibold">数値範囲フィルタ</span>
+            </label>
+            <div class="space-y-4">
+              {attributeMetas.value
+                .filter((attr) => attr.type === "numeric" && attr.numericRange)
+                .map((attr) => {
+                  const range = attr.numericRange!;
+                  const isEnabled = localEnabledRanges.value[attr.name] ??
+                    false;
+                  const currentRange = localNumericRanges.value[attr.name] ??
+                    range;
+                  const includeEmpty =
+                    localIncludeEmptyValues.value[attr.name] ?? true;
+
+                  return (
+                    <div key={attr.name} class="bg-base-200 rounded-lg p-4">
+                      <div class="flex items-center justify-between mb-3">
+                        <div class="font-medium">{attr.name}</div>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                          <span class="text-sm">フィルタを有効化</span>
+                          <input
+                            type="checkbox"
+                            class="toggle toggle-primary toggle-sm"
+                            checked={isEnabled}
+                            onChange={(e) => {
+                              const checked =
+                                (e.target as HTMLInputElement).checked;
+                              localEnabledRanges.value = {
+                                ...localEnabledRanges.value,
+                                [attr.name]: checked,
+                              };
+                              // 初回有効化時にデフォルト範囲を設定
+                              if (
+                                checked && !localNumericRanges.value[attr.name]
+                              ) {
+                                localNumericRanges.value = {
+                                  ...localNumericRanges.value,
+                                  [attr.name]: range,
+                                };
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      <div
+                        class={`space-y-3 ${
+                          isEnabled ? "" : "opacity-50 pointer-events-none"
+                        }`}
+                      >
+                        <div class="text-sm text-base-content/70">
+                          データ範囲: {range[0]} 〜 {range[1]}
+                        </div>
+                        <div class="flex items-center gap-3">
+                          <div class="form-control flex-1">
+                            <label class="label py-1">
+                              <span class="label-text text-xs">最小値</span>
+                            </label>
+                            <input
+                              type="number"
+                              class="input input-bordered input-sm w-full"
+                              value={currentRange[0]}
+                              min={range[0]}
+                              max={range[1]}
+                              step="any"
+                              onInput={(e) => {
+                                const val = parseFloat(
+                                  (e.target as HTMLInputElement).value,
+                                );
+                                if (!isNaN(val)) {
+                                  localNumericRanges.value = {
+                                    ...localNumericRanges.value,
+                                    [attr.name]: [val, currentRange[1]],
+                                  };
+                                }
+                              }}
+                            />
+                          </div>
+                          <span class="mt-6">〜</span>
+                          <div class="form-control flex-1">
+                            <label class="label py-1">
+                              <span class="label-text text-xs">最大値</span>
+                            </label>
+                            <input
+                              type="number"
+                              class="input input-bordered input-sm w-full"
+                              value={currentRange[1]}
+                              min={range[0]}
+                              max={range[1]}
+                              step="any"
+                              onInput={(e) => {
+                                const val = parseFloat(
+                                  (e.target as HTMLInputElement).value,
+                                );
+                                if (!isNaN(val)) {
+                                  localNumericRanges.value = {
+                                    ...localNumericRanges.value,
+                                    [attr.name]: [currentRange[0], val],
+                                  };
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <label class="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            class="checkbox checkbox-sm"
+                            checked={includeEmpty}
+                            onChange={(e) => {
+                              localIncludeEmptyValues.value = {
+                                ...localIncludeEmptyValues.value,
+                                [attr.name]:
+                                  (e.target as HTMLInputElement).checked,
+                              };
+                            }}
+                          />
+                          <span class="text-sm">空の値を含める</span>
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
         {!hasDensityData && attributeMetas.value.length === 0 && (
           <div class="alert alert-info mb-6">
-            <span>このデータには密度情報や属性データがありません。テキスト検索のみ利用可能です。</span>
+            <span>
+              このデータには密度情報や属性データがありません。テキスト検索のみ利用可能です。
+            </span>
           </div>
         )}
 
@@ -289,14 +484,27 @@ export function applyFilters(
   filteredClusterIds: Set<string>;
   isFiltering: boolean;
 } {
-  const { textSearch, maxDensity, minValue, attributeFilters } = filterState;
+  const {
+    textSearch,
+    maxDensity,
+    minValue,
+    attributeFilters,
+    numericRanges,
+    enabledRanges,
+    includeEmptyValues,
+  } = filterState;
+
+  // 有効な数値範囲フィルタがあるか確認
+  const hasActiveNumericRanges = Object.keys(enabledRanges).some((k) =>
+    enabledRanges[k] === true
+  );
 
   // フィルタが適用されているか
-  const isFiltering =
-    textSearch.trim() !== "" ||
+  const isFiltering = textSearch.trim() !== "" ||
     maxDensity < 1 ||
     minValue > 1 ||
-    Object.keys(attributeFilters).some((k) => attributeFilters[k].length > 0);
+    Object.keys(attributeFilters).some((k) => attributeFilters[k].length > 0) ||
+    hasActiveNumericRanges;
 
   if (!isFiltering) {
     return {
@@ -316,11 +524,44 @@ export function applyFilters(
       }
     }
 
-    // 属性フィルタ
+    // カテゴリ属性フィルタ
     for (const [attrName, selectedValues] of Object.entries(attributeFilters)) {
       if (selectedValues.length === 0) continue;
       const attrValue = arg.attributes?.[attrName];
       if (!selectedValues.includes(String(attrValue ?? ""))) {
+        return false;
+      }
+    }
+
+    // 数値範囲フィルタ
+    for (const [attrName, isEnabled] of Object.entries(enabledRanges)) {
+      if (!isEnabled) continue;
+      const range = numericRanges[attrName];
+      if (!range) continue;
+
+      const attrValue = arg.attributes?.[attrName];
+      const includeEmpty = includeEmptyValues[attrName] ?? true;
+
+      // 値が空の場合
+      if (attrValue == null || attrValue === "") {
+        if (!includeEmpty) {
+          return false;
+        }
+        // 空の値を含める場合はこのフィルタをパス
+        continue;
+      }
+
+      const numValue = Number(attrValue);
+      if (Number.isNaN(numValue)) {
+        // 数値に変換できない場合は空と同じ扱い
+        if (!includeEmpty) {
+          return false;
+        }
+        continue;
+      }
+
+      // 範囲チェック
+      if (numValue < range[0] || numValue > range[1]) {
         return false;
       }
     }
@@ -339,7 +580,7 @@ export function applyFilters(
         const density = c.density_rank_percentile ?? 0;
         return density <= maxDensity && c.value >= minValue;
       })
-      .map((c) => c.id)
+      .map((c) => c.id),
   );
 
   return {

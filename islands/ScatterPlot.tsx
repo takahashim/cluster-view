@@ -3,10 +3,11 @@ import type { Argument, Cluster } from "@/lib/types.ts";
 import { getClusterColor, INACTIVE_COLOR } from "@/lib/colors.ts";
 import { CHART_HEIGHT_CLASS, CHART_HEIGHT_FULL } from "@/lib/constants.ts";
 import type {
-  PlotlyScatterData,
-  PlotlyScatterLayout,
   PlotlyAnnotation,
   PlotlyConfig,
+  PlotlyHTMLElement,
+  PlotlyScatterData,
+  PlotlyScatterLayout,
 } from "@/lib/plotly-types.ts";
 
 // Declare Plotly type on globalThis
@@ -32,6 +33,7 @@ interface ScatterPlotProps {
   fullHeight?: boolean; // フルスクリーン用
   filteredArgumentIds?: Set<string>; // フィルタで選択された引数ID
   filteredClusterIds?: Set<string>; // 密度フィルタで選択されたクラスタID
+  enableSourceLink?: boolean; // ソースリンク機能を有効にするか
 }
 
 export default function ScatterPlot({
@@ -42,6 +44,7 @@ export default function ScatterPlot({
   fullHeight = false,
   filteredArgumentIds,
   filteredClusterIds,
+  enableSourceLink = false,
 }: ScatterPlotProps) {
   // 最大レベルを計算（密度表示用）
   const maxLevel = Math.max(...clusters.map((c) => c.level));
@@ -54,11 +57,6 @@ export default function ScatterPlot({
     level: number,
   ): string | undefined => {
     return clusterIds.find((id) => id.startsWith(`${level}_`));
-  };
-
-  // Get level 1 cluster ID from an argument's cluster_ids (backwards compatibility)
-  const getLevel1ClusterId = (clusterIds: string[]): string | undefined => {
-    return getClusterIdAtLevel(clusterIds, 1);
   };
 
   // Calculate centroid for a set of points
@@ -122,7 +120,10 @@ export default function ScatterPlot({
         // 密度フィルタが適用されている場合、フィルタに含まれないクラスタはグレー表示
         if (filteredClusterIds && clusterId) {
           // 最深レベルのクラスタIDを取得して、フィルタに含まれているか確認
-          const deepestClusterId = getClusterIdAtLevel(arg.cluster_ids, maxLevel);
+          const deepestClusterId = getClusterIdAtLevel(
+            arg.cluster_ids,
+            maxLevel,
+          );
           if (deepestClusterId && !filteredClusterIds.has(deepestClusterId)) {
             return INACTIVE_COLOR;
           }
@@ -181,13 +182,22 @@ export default function ScatterPlot({
   const buildPlotData = (): PlotlyScatterData[] => {
     const colors = getPointColors();
 
+    // Build hover text with source link hint if enabled
+    const hoverTexts = args.map((a) => {
+      const text = a.argument.replace(/(.{30})/g, "$1<br />");
+      if (enableSourceLink && a.url) {
+        return `${text}<br><b>クリックしてソースを見る</b>`;
+      }
+      return text;
+    });
+
     return [
       {
         x: args.map((a) => a.x),
         y: args.map((a) => a.y),
         mode: "markers",
         type: "scattergl",
-        text: args.map((a) => a.argument),
+        text: hoverTexts,
         marker: {
           size: 8,
           opacity: 0.7,
@@ -236,6 +246,19 @@ export default function ScatterPlot({
     };
   };
 
+  // Handle click for source link
+  const handleClick = (event: { points: Array<{ pointNumber: number }> }) => {
+    if (!enableSourceLink) return;
+
+    const point = event.points?.[0];
+    if (!point) return;
+
+    const arg = args[point.pointNumber];
+    if (arg?.url) {
+      globalThis.open(arg.url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   // Initialize plot
   useEffect(() => {
     if (!plotRef.current || !Plotly) return;
@@ -252,27 +275,46 @@ export default function ScatterPlot({
       displaylogo: false,
     };
 
+    const plotElement = plotRef.current;
+
     if (!initializedRef.current) {
       Plotly.newPlot(
-        plotRef.current,
+        plotElement,
         buildPlotData(),
         buildLayout(),
         config,
-      );
+      ).then(() => {
+        if (enableSourceLink) {
+          const plotlyElement = plotElement as PlotlyHTMLElement;
+          plotlyElement.on("plotly_click", handleClick);
+        }
+      });
       initializedRef.current = true;
     } else {
-      Plotly.react(plotRef.current, buildPlotData(), buildLayout());
+      Plotly.react(plotElement, buildPlotData(), buildLayout());
     }
-  }, [selectedClusterId, args, clusters, targetLevel, filteredArgumentIds, filteredClusterIds]);
+  }, [
+    selectedClusterId,
+    args,
+    clusters,
+    targetLevel,
+    filteredArgumentIds,
+    filteredClusterIds,
+    enableSourceLink,
+  ]);
 
   const heightClass = fullHeight ? CHART_HEIGHT_FULL : CHART_HEIGHT_CLASS;
 
+  const cursorStyle = enableSourceLink ? "cursor-pointer" : "";
+
   return (
     <div class={`w-full ${fullHeight ? "h-full" : ""}`}>
-      <div ref={plotRef} class={`w-full ${heightClass}`} />
+      <div ref={plotRef} class={`w-full ${heightClass} ${cursorStyle}`} />
       {!fullHeight && (
         <p class="text-sm text-base-content/60 text-center mt-2">
-          各点にカーソルを合わせると意見を確認できます
+          {enableSourceLink
+            ? "各点をクリックするとソースを確認できます"
+            : "各点にカーソルを合わせると意見を確認できます"}
         </p>
       )}
     </div>
