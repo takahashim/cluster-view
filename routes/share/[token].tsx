@@ -25,6 +25,7 @@ export default define.page<typeof handler>(function SharePage({ data }) {
     <>
       <Head>
         <title>{report.title} - Cluster View</title>
+        <meta name="robots" content="noindex, nofollow" />
         <meta name="description" content={reportData.overview.slice(0, 160)} />
         <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
       </Head>
