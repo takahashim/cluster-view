@@ -479,11 +479,13 @@ export function applyFilters(
   args: Argument[],
   clusters: Cluster[],
   filterState: FilterState,
+  options: { applyDensityFilter?: boolean } = {},
 ): {
   filteredArgumentIds: Set<string>;
   filteredClusterIds: Set<string>;
   isFiltering: boolean;
 } {
+  const { applyDensityFilter = false } = options;
   const {
     textSearch,
     maxDensity,
@@ -494,15 +496,16 @@ export function applyFilters(
     includeEmptyValues,
   } = filterState;
 
+  const effectiveMaxDensity = applyDensityFilter ? maxDensity : 1;
+  const effectiveMinValue = applyDensityFilter ? minValue : 0;
+
   // 有効な数値範囲フィルタがあるか確認
   const hasActiveNumericRanges = Object.keys(enabledRanges).some((k) =>
     enabledRanges[k] === true
   );
 
-  // フィルタが適用されているか
   const isFiltering = textSearch.trim() !== "" ||
-    maxDensity < 1 ||
-    minValue > 1 ||
+    (applyDensityFilter && (maxDensity < 1 || minValue > 0)) ||
     Object.keys(attributeFilters).some((k) => attributeFilters[k].length > 0) ||
     hasActiveNumericRanges;
 
@@ -569,23 +572,41 @@ export function applyFilters(
     return true;
   });
 
-  const filteredArgumentIds = new Set(filteredArgs.map((a) => a.arg_id));
-
   // 密度フィルタ（クラスタ）
   const deepestLevel = clusters.reduce((max, c) => Math.max(max, c.level), 0);
-  const filteredClusterIds = new Set(
+  const densityFilteredClusterIds = new Set(
     clusters
       .filter((c) => {
         if (c.level !== deepestLevel) return true;
         const density = c.density_rank_percentile ?? 0;
-        return density <= maxDensity && c.value >= minValue;
+        return density <= effectiveMaxDensity && c.value >= effectiveMinValue;
       })
       .map((c) => c.id),
   );
 
+  const finalFilteredArgs = filteredArgs.filter((arg) => {
+    // 密度フィルタが無効な場合はすべて通過
+    if (effectiveMaxDensity >= 1 && effectiveMinValue <= 0) return true;
+
+    // 引数が属する最深レベルのクラスタIDを取得
+    const argDeepestClusterIds = arg.cluster_ids.filter((cid) =>
+      clusters.some((c) => c.id === cid && c.level === deepestLevel)
+    );
+
+    // 最深レベルのクラスタがない場合は通過
+    if (argDeepestClusterIds.length === 0) return true;
+
+    // 少なくとも1つの最深クラスタが密度フィルタを通過していれば表示
+    return argDeepestClusterIds.some((cid) =>
+      densityFilteredClusterIds.has(cid)
+    );
+  });
+
+  const filteredArgumentIds = new Set(finalFilteredArgs.map((a) => a.arg_id));
+
   return {
     filteredArgumentIds,
-    filteredClusterIds,
+    filteredClusterIds: densityFilteredClusterIds,
     isFiltering,
   };
 }

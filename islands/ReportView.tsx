@@ -43,7 +43,9 @@ export default function ReportView(
 
   // フィルタ結果を計算
   const filterResult = useComputed(() => {
-    return applyFilters(data.arguments, data.clusters, filterState.value);
+    return applyFilters(data.arguments, data.clusters, filterState.value, {
+      applyDensityFilter: chartType.value === "scatterDensity",
+    });
   });
 
   // フィルタが適用中かどうか
