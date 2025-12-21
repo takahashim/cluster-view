@@ -1,5 +1,5 @@
 import { useSignal } from "@preact/signals";
-import type { HierarchicalResult, Cluster } from "@/lib/types.ts";
+import type { Cluster, HierarchicalResult } from "@/lib/types.ts";
 import Overview from "@/components/Overview.tsx";
 import ClusterGrid from "@/components/ClusterGrid.tsx";
 import ScatterPlot from "./ScatterPlot.tsx";
@@ -10,7 +10,9 @@ interface ReportViewProps {
   shareToken: string;
 }
 
-export default function ReportView({ data, title, shareToken }: ReportViewProps) {
+export default function ReportView(
+  { data, title, shareToken }: ReportViewProps,
+) {
   const selectedClusterId = useSignal<string | null>(null);
   const copied = useSignal(false);
 
@@ -70,7 +72,10 @@ export default function ReportView({ data, title, shareToken }: ReportViewProps)
     <div class="min-h-screen bg-base-200">
       <header class="navbar bg-base-100 shadow-sm sticky top-0 z-50 px-4 md:px-6">
         <div class="flex-1">
-          <a href="/" class="flex items-center gap-2 text-base-content font-semibold hover:text-primary transition-colors">
+          <a
+            href="/"
+            class="flex items-center gap-2 text-base-content font-semibold hover:text-primary transition-colors"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               class="h-5 w-5"
@@ -88,42 +93,48 @@ export default function ReportView({ data, title, shareToken }: ReportViewProps)
           </a>
         </div>
         <div class="flex-none">
-          <button class="btn btn-primary btn-sm gap-2" onClick={copyShareUrl}>
-            {copied.value ? (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                コピーしました
-              </>
-            ) : (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                  <polyline points="16 6 12 2 8 6" />
-                  <line x1="12" y1="2" x2="12" y2="15" />
-                </svg>
-                URLをコピー
-              </>
-            )}
+          <button
+            type="button"
+            class="btn btn-primary btn-sm gap-2"
+            onClick={copyShareUrl}
+          >
+            {copied.value
+              ? (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  コピーしました
+                </>
+              )
+              : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                  URLをコピー
+                </>
+              )}
           </button>
         </div>
       </header>
@@ -148,7 +159,11 @@ export default function ReportView({ data, title, shareToken }: ReportViewProps)
 
         {selectedCluster && (
           <div class="flex items-center gap-3 mb-4">
-            <button class="btn btn-ghost btn-sm gap-1" onClick={handleBackClick}>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm gap-1"
+              onClick={handleBackClick}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 class="h-4 w-4"

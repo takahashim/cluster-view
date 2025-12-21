@@ -10,7 +10,8 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [daisyui],
+  // deno-lint-ignore no-explicit-any
+  plugins: [daisyui as any],
   daisyui: {
     themes: ["light", "dark"],
   },

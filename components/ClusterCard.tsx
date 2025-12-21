@@ -6,7 +6,9 @@ interface ClusterCardProps {
   onClick?: () => void;
 }
 
-export default function ClusterCard({ cluster, color, onClick }: ClusterCardProps) {
+export default function ClusterCard(
+  { cluster, color, onClick }: ClusterCardProps,
+) {
   return (
     <div
       class="card bg-base-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-l-4"
@@ -30,7 +32,9 @@ export default function ClusterCard({ cluster, color, onClick }: ClusterCardProp
             {cluster.value}件
           </span>
         </div>
-        <p class="text-sm text-base-content/70 line-clamp-3">{cluster.takeaway}</p>
+        <p class="text-sm text-base-content/70 line-clamp-3">
+          {cluster.takeaway}
+        </p>
       </div>
     </div>
   );

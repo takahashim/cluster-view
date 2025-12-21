@@ -7,7 +7,9 @@ interface ClusterGridProps {
   onClusterClick?: (clusterId: string) => void;
 }
 
-export default function ClusterGrid({ clusters, onClusterClick }: ClusterGridProps) {
+export default function ClusterGrid(
+  { clusters, onClusterClick }: ClusterGridProps,
+) {
   const sortedClusters = [...clusters].sort((a, b) => b.value - a.value);
 
   return (
@@ -19,7 +21,9 @@ export default function ClusterGrid({ clusters, onClusterClick }: ClusterGridPro
             key={cluster.id}
             cluster={cluster}
             color={getClusterColor(cluster.id)}
-            onClick={onClusterClick ? () => onClusterClick(cluster.id) : undefined}
+            onClick={onClusterClick
+              ? () => onClusterClick(cluster.id)
+              : undefined}
           />
         ))}
       </div>

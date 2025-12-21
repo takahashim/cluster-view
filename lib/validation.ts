@@ -1,4 +1,4 @@
-import type { HierarchicalResult, Argument, Cluster } from "./types.ts";
+import type { Argument, Cluster, HierarchicalResult } from "./types.ts";
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -56,11 +56,16 @@ export function validateHierarchicalResult(data: unknown): HierarchicalResult {
     arguments: obj.arguments as Argument[],
     clusters: obj.clusters as Cluster[],
     comments: obj.comments as Record<string, { comment: string }>,
-    propertyMap: (obj.propertyMap || {}) as Record<string, Record<string, unknown>>,
+    propertyMap: (obj.propertyMap || {}) as Record<
+      string,
+      Record<string, unknown>
+    >,
     translations: (obj.translations || {}) as Record<string, unknown>,
     overview: obj.overview as string,
     config: obj.config as Record<string, unknown>,
-    comment_num: typeof obj.comment_num === "number" ? obj.comment_num : undefined,
+    comment_num: typeof obj.comment_num === "number"
+      ? obj.comment_num
+      : undefined,
   };
 }
 
@@ -68,7 +73,8 @@ function validateArgument(arg: Record<string, unknown>): boolean {
   return (
     typeof arg.arg_id === "string" &&
     typeof arg.argument === "string" &&
-    (typeof arg.comment_id === "number" || typeof arg.comment_id === "string") &&
+    (typeof arg.comment_id === "number" ||
+      typeof arg.comment_id === "string") &&
     typeof arg.x === "number" &&
     typeof arg.y === "number" &&
     Array.isArray(arg.cluster_ids)

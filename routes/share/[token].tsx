@@ -1,4 +1,5 @@
 import { Head } from "fresh/runtime";
+import { HttpError } from "fresh";
 import { define } from "@/utils.ts";
 import { getReportByToken } from "@/lib/db.ts";
 import type { HierarchicalResult } from "@/lib/types.ts";
@@ -16,48 +17,31 @@ export const handler = define.handlers({
 
     const report = await getReportByToken(token);
 
-    if (!report) {
-      return ctx.render(undefined);
+    if (!report || !report.shareEnabled) {
+      throw new HttpError(404, "Report not found");
     }
 
-    if (!report.shareEnabled) {
-      return ctx.render(undefined);
-    }
-
-    return ctx.render({
-      data: report.data,
-      title: report.title || "分析結果",
-      shareToken: report.shareToken,
-    });
+    return {
+      data: {
+        data: report.data,
+        title: report.title || "分析結果",
+        shareToken: report.shareToken,
+      } as PageData,
+    };
   },
 });
 
-export default define.page<PageData | undefined>(function SharePage(ctx) {
-  if (!ctx.data) {
-    return (
-      <div class="min-h-screen flex items-center justify-center bg-base-200">
-        <Head>
-          <title>レポートが見つかりません</title>
-        </Head>
-        <div class="text-center">
-          <h1 class="text-7xl font-bold text-base-content/20">404</h1>
-          <p class="text-lg text-base-content/60 mt-4 mb-6">レポートが見つかりません</p>
-          <a href="/" class="btn btn-primary">トップページに戻る</a>
-        </div>
-      </div>
-    );
-  }
-
-  const { data, title, shareToken } = ctx.data;
+export default define.page<typeof handler>(function SharePage({ data }) {
+  const { data: reportData, title, shareToken } = data;
 
   return (
     <>
       <Head>
         <title>{title} - Broadlistening</title>
-        <meta name="description" content={data.overview.slice(0, 160)} />
+        <meta name="description" content={reportData.overview.slice(0, 160)} />
         <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
       </Head>
-      <ReportView data={data} title={title} shareToken={shareToken} />
+      <ReportView data={reportData} title={title} shareToken={shareToken} />
     </>
   );
 });

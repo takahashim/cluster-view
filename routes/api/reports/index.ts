@@ -1,6 +1,9 @@
 import { define } from "@/utils.ts";
 import { createReport } from "@/lib/db.ts";
-import { validateHierarchicalResult, ValidationError } from "@/lib/validation.ts";
+import {
+  validateHierarchicalResult,
+  ValidationError,
+} from "@/lib/validation.ts";
 import type { CreateReportResponse } from "@/lib/types.ts";
 
 export const handler = define.handlers({
@@ -38,7 +41,7 @@ export const handler = define.handlers({
           {
             status: 400,
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -48,7 +51,7 @@ export const handler = define.handlers({
           {
             status: 400,
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -58,7 +61,7 @@ export const handler = define.handlers({
         {
           status: 500,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
   },

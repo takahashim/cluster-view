@@ -4,7 +4,9 @@ interface OverviewProps {
   overview: string;
 }
 
-export default function Overview({ title, commentCount, overview }: OverviewProps) {
+export default function Overview(
+  { title, commentCount, overview }: OverviewProps,
+) {
   return (
     <div class="card bg-base-100 shadow-sm mb-6">
       <div class="card-body">

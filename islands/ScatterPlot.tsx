@@ -2,24 +2,20 @@ import { useEffect, useRef } from "preact/hooks";
 import type { Argument, Cluster } from "@/lib/types.ts";
 import { getClusterColor, INACTIVE_COLOR } from "@/lib/colors.ts";
 
-// Declare Plotly type
-declare global {
-  interface Window {
-    Plotly: {
-      newPlot: (
-        element: HTMLElement,
-        data: PlotlyData[],
-        layout: PlotlyLayout,
-        config?: PlotlyConfig
-      ) => Promise<void>;
-      react: (
-        element: HTMLElement,
-        data: PlotlyData[],
-        layout: PlotlyLayout
-      ) => Promise<void>;
-    };
-  }
-}
+// Declare Plotly type on globalThis
+declare const Plotly: {
+  newPlot: (
+    element: HTMLElement,
+    data: PlotlyData[],
+    layout: PlotlyLayout,
+    config?: PlotlyConfig,
+  ) => Promise<void>;
+  react: (
+    element: HTMLElement,
+    data: PlotlyData[],
+    layout: PlotlyLayout,
+  ) => Promise<void>;
+} | undefined;
 
 interface PlotlyData {
   x: number[];
@@ -100,7 +96,7 @@ export default function ScatterPlot({
 
   // Calculate centroid for a set of points
   const calculateCentroid = (
-    points: Argument[]
+    points: Argument[],
   ): { x: number; y: number } | null => {
     if (points.length === 0) return null;
     const sumX = points.reduce((acc, p) => acc + p.x, 0);
@@ -114,7 +110,7 @@ export default function ScatterPlot({
   // Build annotations for clusters
   const buildAnnotations = (
     targetClusters: Cluster[],
-    clusterPoints: Map<string, Argument[]>
+    clusterPoints: Map<string, Argument[]>,
   ): PlotlyAnnotation[] => {
     return targetClusters
       .filter((cluster) => {
@@ -124,10 +120,9 @@ export default function ScatterPlot({
       .map((cluster) => {
         const points = clusterPoints.get(cluster.id)!;
         const centroid = calculateCentroid(points)!;
-        const label =
-          cluster.label.length > 16
-            ? cluster.label.slice(0, 16) + "..."
-            : cluster.label;
+        const label = cluster.label.length > 16
+          ? cluster.label.slice(0, 16) + "..."
+          : cluster.label;
 
         return {
           x: centroid.x,
@@ -156,7 +151,7 @@ export default function ScatterPlot({
     } else {
       // Subcluster view: highlight selected cluster's children
       const childClusters = clusters.filter(
-        (c) => c.parent === selectedClusterId
+        (c) => c.parent === selectedClusterId,
       );
       const childIds = new Set(childClusters.map((c) => c.id));
 
@@ -175,7 +170,7 @@ export default function ScatterPlot({
 
   // Group points by cluster ID
   const groupPointsByCluster = (
-    clusterLevel: number
+    clusterLevel: number,
   ): Map<string, Argument[]> => {
     const groups = new Map<string, Argument[]>();
 
@@ -228,7 +223,7 @@ export default function ScatterPlot({
     } else {
       // Subcluster view: show child cluster annotations
       const childClusters = clusters.filter(
-        (c) => c.parent === selectedClusterId
+        (c) => c.parent === selectedClusterId,
       );
       const childLevel = childClusters[0]?.level || 2;
       const clusterPoints = groupPointsByCluster(childLevel);
@@ -256,25 +251,30 @@ export default function ScatterPlot({
 
   // Initialize plot
   useEffect(() => {
-    if (!plotRef.current || !window.Plotly) return;
+    if (!plotRef.current || !Plotly) return;
 
     const config: PlotlyConfig = {
       responsive: true,
       displayModeBar: true,
-      modeBarButtonsToRemove: ["select2d", "lasso2d", "resetScale2d", "toImage"],
+      modeBarButtonsToRemove: [
+        "select2d",
+        "lasso2d",
+        "resetScale2d",
+        "toImage",
+      ],
       displaylogo: false,
     };
 
     if (!initializedRef.current) {
-      window.Plotly.newPlot(
+      Plotly.newPlot(
         plotRef.current,
         buildPlotData(),
         buildLayout(),
-        config
+        config,
       );
       initializedRef.current = true;
     } else {
-      window.Plotly.react(plotRef.current, buildPlotData(), buildLayout());
+      Plotly.react(plotRef.current, buildPlotData(), buildLayout());
     }
   }, [selectedClusterId, args, clusters]);
 

@@ -41,7 +41,9 @@ export default function FileUploader() {
         globalThis.location.href = result.shareUrl;
       }
     } catch (error) {
-      errorMessage.value = error instanceof Error ? error.message : "エラーが発生しました";
+      errorMessage.value = error instanceof Error
+        ? error.message
+        : "エラーが発生しました";
     } finally {
       isUploading.value = false;
     }
@@ -74,51 +76,68 @@ export default function FileUploader() {
     <div class="w-full max-w-md mx-auto">
       <div
         class={`border-2 border-dashed rounded-2xl p-12 text-center transition-all cursor-pointer
-          ${isDragging.value ? "border-primary bg-primary/10" : "border-base-content/20 bg-base-100"}
-          ${isUploading.value ? "opacity-50 cursor-wait" : "hover:border-primary/50"}`}
+          ${
+          isDragging.value
+            ? "border-primary bg-primary/10"
+            : "border-base-content/20 bg-base-100"
+        }
+          ${
+          isUploading.value
+            ? "opacity-50 cursor-wait"
+            : "hover:border-primary/50"
+        }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
-        {isUploading.value ? (
-          <div class="flex flex-col items-center gap-4">
-            <span class="loading loading-spinner loading-lg text-primary"></span>
-            <p class="text-base-content">アップロード中...</p>
-          </div>
-        ) : (
-          <>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-12 w-12 mx-auto mb-4 text-base-content/40"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <p class="font-medium text-base-content mb-2">
-              hierarchical_result.json をドラッグ&ドロップ
-            </p>
-            <p class="text-base-content/60 text-sm mb-4">または</p>
-            <label class="btn btn-primary">
-              ファイルを選択
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleInputChange}
-                class="hidden"
-              />
-            </label>
-          </>
-        )}
+        {isUploading.value
+          ? (
+            <div class="flex flex-col items-center gap-4">
+              <span class="loading loading-spinner loading-lg text-primary">
+              </span>
+              <p class="text-base-content">アップロード中...</p>
+            </div>
+          )
+          : (
+            <>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-12 w-12 mx-auto mb-4 text-base-content/40"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <p class="font-medium text-base-content mb-2">
+                hierarchical_result.json をドラッグ&ドロップ
+              </p>
+              <p class="text-base-content/60 text-sm mb-4">または</p>
+              <label class="btn btn-primary">
+                ファイルを選択
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleInputChange}
+                  class="hidden"
+                />
+              </label>
+            </>
+          )}
       </div>
 
       {errorMessage.value && (
         <div class="alert alert-error mt-4">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <circle cx="12" cy="12" r="10" stroke-width="2" />
             <line x1="12" y1="8" x2="12" y2="12" stroke-width="2" />
             <line x1="12" y1="16" x2="12.01" y2="16" stroke-width="2" />

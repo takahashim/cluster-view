@@ -21,7 +21,7 @@ function extractTitle(config: Record<string, unknown>): string | undefined {
 
 // Create a new report
 export async function createReport(
-  data: HierarchicalResult
+  data: HierarchicalResult,
 ): Promise<ReportRecord> {
   const db = await getKv();
 
@@ -55,7 +55,7 @@ export async function createReport(
 
 // Get report by ID
 export async function getReportById(
-  id: string
+  id: string,
 ): Promise<ReportRecord | null> {
   const db = await getKv();
   const result = await db.get<ReportRecord>(["reports", id]);
@@ -64,7 +64,7 @@ export async function getReportById(
 
 // Get report by share token
 export async function getReportByToken(
-  token: string
+  token: string,
 ): Promise<ReportRecord | null> {
   const db = await getKv();
 
@@ -82,7 +82,7 @@ export async function getReportByToken(
 // Update share enabled status
 export async function updateShareEnabled(
   id: string,
-  enabled: boolean
+  enabled: boolean,
 ): Promise<boolean> {
   const db = await getKv();
 
@@ -102,7 +102,7 @@ export async function updateShareEnabled(
 
 // Regenerate share token (invalidates old URL)
 export async function regenerateShareToken(
-  id: string
+  id: string,
 ): Promise<string | null> {
   const db = await getKv();
 
