@@ -28,7 +28,8 @@
     "nanoid": "npm:nanoid@^5.0.9",
     "@std/uuid": "jsr:@std/uuid@^1",
     "tailwindcss": "npm:tailwindcss@^3.4.0",
-    "daisyui": "npm:daisyui@^4.12.0"
+    "daisyui": "npm:daisyui@^4.12.0",
+    "autoprefixer": "npm:autoprefixer@^10.4.0"
   },
   "compilerOptions": {
     "lib": [

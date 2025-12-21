@@ -4,7 +4,7 @@ import FileUploader from "../islands/FileUploader.tsx";
 
 export default define.page(function Home() {
   return (
-    <div class="min-h-screen bg-gradient-to-br from-primary to-secondary p-6 md:p-10">
+    <div class="min-h-screen bg-base-200 p-6 md:p-10">
       <Head>
         <title>Broadlistening - レポートビューア</title>
         <meta
@@ -15,10 +15,10 @@ export default define.page(function Home() {
 
       <main class="max-w-3xl mx-auto">
         <div class="text-center mb-12">
-          <h1 class="text-4xl md:text-5xl font-bold text-primary-content mb-4">
+          <h1 class="text-4xl md:text-5xl font-bold text-base-content mb-4">
             Broadlistening
           </h1>
-          <p class="text-lg text-primary-content/90">
+          <p class="text-lg text-base-content/70">
             hierarchical_result.json をアップロードして、
             <br />
             分析結果を可視化・共有できます
@@ -28,12 +28,12 @@ export default define.page(function Home() {
         <FileUploader />
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
-          <div class="card bg-base-100/10 backdrop-blur">
+          <div class="card bg-base-100 shadow-sm">
             <div class="card-body items-center text-center">
-              <div class="w-12 h-12 rounded-xl bg-base-100/20 flex items-center justify-center mb-2">
+              <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6 text-primary-content"
+                  class="h-6 w-6 text-primary"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -42,21 +42,21 @@ export default define.page(function Home() {
                   <circle cx="12" cy="12" r="3" stroke-width="2" />
                 </svg>
               </div>
-              <h3 class="card-title text-primary-content text-base">
+              <h3 class="card-title text-base">
                 インタラクティブな可視化
               </h3>
-              <p class="text-primary-content/80 text-sm">
+              <p class="text-base-content/60 text-sm">
                 スキャッタープロットで意見の分布を確認
               </p>
             </div>
           </div>
 
-          <div class="card bg-base-100/10 backdrop-blur">
+          <div class="card bg-base-100 shadow-sm">
             <div class="card-body items-center text-center">
-              <div class="w-12 h-12 rounded-xl bg-base-100/20 flex items-center justify-center mb-2">
+              <div class="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center mb-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6 text-primary-content"
+                  class="h-6 w-6 text-secondary"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -68,21 +68,21 @@ export default define.page(function Home() {
                   <rect x="3" y="14" width="7" height="7" />
                 </svg>
               </div>
-              <h3 class="card-title text-primary-content text-base">
+              <h3 class="card-title text-base">
                 クラスタ別の閲覧
               </h3>
-              <p class="text-primary-content/80 text-sm">
+              <p class="text-base-content/60 text-sm">
                 階層的なクラスタ構造をドリルダウン
               </p>
             </div>
           </div>
 
-          <div class="card bg-base-100/10 backdrop-blur">
+          <div class="card bg-base-100 shadow-sm">
             <div class="card-body items-center text-center">
-              <div class="w-12 h-12 rounded-xl bg-base-100/20 flex items-center justify-center mb-2">
+              <div class="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mb-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6 text-primary-content"
+                  class="h-6 w-6 text-accent"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -93,10 +93,10 @@ export default define.page(function Home() {
                   <line x1="12" y1="2" x2="12" y2="15" />
                 </svg>
               </div>
-              <h3 class="card-title text-primary-content text-base">
+              <h3 class="card-title text-base">
                 簡単シェア
               </h3>
-              <p class="text-primary-content/80 text-sm">
+              <p class="text-base-content/60 text-sm">
                 URLを共有して第三者と結果を共有
               </p>
             </div>
