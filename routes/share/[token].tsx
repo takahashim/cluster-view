@@ -23,7 +23,7 @@ export default define.page<typeof handler>(function SharePage({ data }) {
   return (
     <>
       <Head>
-        <title>{report.title} - Broadlistening</title>
+        <title>{report.title} - Cluster View</title>
         <meta name="description" content={report.data.overview.slice(0, 160)} />
         <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
       </Head>

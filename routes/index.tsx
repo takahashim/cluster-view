@@ -6,7 +6,7 @@ export default define.page(function Home() {
   return (
     <div class="min-h-screen bg-base-200 p-6 md:p-10">
       <Head>
-        <title>Broadlistening - レポートビューア</title>
+        <title>Cluster View - レポートビューア</title>
         <meta
           name="description"
           content="hierarchical_result.jsonをアップロードして可視化"
@@ -16,7 +16,7 @@ export default define.page(function Home() {
       <main class="max-w-3xl mx-auto">
         <div class="text-center mb-12">
           <h1 class="text-4xl md:text-5xl font-bold text-base-content mb-4">
-            Broadlistening
+            Cluster View
           </h1>
           <p class="text-lg text-base-content/70">
             hierarchical_result.json をアップロードして、
