@@ -3,6 +3,7 @@ import type { Cluster, HierarchicalResult } from "@/lib/types.ts";
 import Overview from "@/components/Overview.tsx";
 import ClusterGrid from "@/components/ClusterGrid.tsx";
 import ScatterPlot from "./ScatterPlot.tsx";
+import TreemapChart from "./TreemapChart.tsx";
 
 interface ReportViewProps {
   data: HierarchicalResult;
@@ -10,11 +11,24 @@ interface ReportViewProps {
   shareToken: string;
 }
 
+type ChartType = "scatterAll" | "scatterDensity" | "treemap";
+
 export default function ReportView(
   { data, title, shareToken }: ReportViewProps,
 ) {
   const selectedClusterId = useSignal<string | null>(null);
   const copied = useSignal(false);
+  const chartType = useSignal<ChartType>("scatterAll");
+  const isFullscreen = useSignal(false);
+  const treemapLevel = useSignal("0"); // Treemapのズームレベル
+
+  // 最大レベルを計算（密度表示用）
+  const maxLevel = Math.max(...data.clusters.map((c) => c.level));
+
+  // Treemapズーム用のハンドラ
+  const handleTreeZoom = (level: string) => {
+    treemapLevel.value = level;
+  };
 
   // Get level 1 clusters
   const level1Clusters = data.clusters.filter((c) => c.level === 1);
@@ -148,12 +162,83 @@ export default function ReportView(
 
         <section class="card bg-base-100 shadow-sm mb-6">
           <div class="card-body">
-            <h2 class="card-title text-lg">意見の分布</h2>
-            <ScatterPlot
-              arguments={data.arguments}
-              clusters={data.clusters}
-              selectedClusterId={selectedClusterId.value}
-            />
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h2 class="card-title text-lg">意見の分布</h2>
+              <div class="flex items-center gap-2">
+                <div class="join">
+                  <button
+                    type="button"
+                    class={`btn btn-sm join-item ${chartType.value === "scatterAll" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => {
+                      chartType.value = "scatterAll";
+                      selectedClusterId.value = null;
+                    }}
+                  >
+                    全体
+                  </button>
+                  <button
+                    type="button"
+                    class={`btn btn-sm join-item ${chartType.value === "scatterDensity" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => {
+                      chartType.value = "scatterDensity";
+                      selectedClusterId.value = null;
+                    }}
+                  >
+                    密度
+                  </button>
+                  <button
+                    type="button"
+                    class={`btn btn-sm join-item ${chartType.value === "treemap" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => {
+                      chartType.value = "treemap";
+                      selectedClusterId.value = null;
+                      treemapLevel.value = "0";
+                    }}
+                  >
+                    ツリー
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-ghost"
+                  onClick={() => {
+                    isFullscreen.value = true;
+                  }}
+                  title="全画面表示"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="15 3 21 3 21 9" />
+                    <polyline points="9 21 3 21 3 15" />
+                    <line x1="21" y1="3" x2="14" y2="10" />
+                    <line x1="3" y1="21" x2="10" y2="14" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {chartType.value === "treemap" ? (
+              <TreemapChart
+                arguments={data.arguments}
+                clusters={data.clusters}
+                level={treemapLevel.value}
+                onTreeZoom={handleTreeZoom}
+              />
+            ) : (
+              <ScatterPlot
+                arguments={data.arguments}
+                clusters={data.clusters}
+                selectedClusterId={selectedClusterId.value}
+                targetLevel={chartType.value === "scatterAll" ? 1 : maxLevel}
+              />
+            )}
           </div>
         </section>
 
@@ -189,6 +274,99 @@ export default function ReportView(
           />
         )}
       </main>
+
+      {/* フルスクリーンモーダル */}
+      {isFullscreen.value && (
+        <div class="modal modal-open">
+          <div class="modal-box w-full max-w-none h-screen max-h-none rounded-none p-0 m-0">
+            <div class="relative w-full h-full bg-base-100">
+              {/* 閉じるボタン */}
+              <button
+                type="button"
+                class="btn btn-sm btn-ghost absolute top-4 right-4 z-10"
+                onClick={() => {
+                  isFullscreen.value = false;
+                }}
+                title="全画面を終了"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="4 14 10 14 10 20" />
+                  <polyline points="20 10 14 10 14 4" />
+                  <line x1="14" y1="10" x2="21" y2="3" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              </button>
+
+              {/* 表示切り替えボタン */}
+              <div class="absolute top-4 left-4 z-10">
+                <div class="join">
+                  <button
+                    type="button"
+                    class={`btn btn-sm join-item ${chartType.value === "scatterAll" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => {
+                      chartType.value = "scatterAll";
+                      selectedClusterId.value = null;
+                    }}
+                  >
+                    全体
+                  </button>
+                  <button
+                    type="button"
+                    class={`btn btn-sm join-item ${chartType.value === "scatterDensity" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => {
+                      chartType.value = "scatterDensity";
+                      selectedClusterId.value = null;
+                    }}
+                  >
+                    密度
+                  </button>
+                  <button
+                    type="button"
+                    class={`btn btn-sm join-item ${chartType.value === "treemap" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => {
+                      chartType.value = "treemap";
+                      selectedClusterId.value = null;
+                      treemapLevel.value = "0";
+                    }}
+                  >
+                    ツリー
+                  </button>
+                </div>
+              </div>
+
+              {/* フルスクリーンチャート */}
+              <div class="w-full h-full pt-16 pb-4">
+                {chartType.value === "treemap" ? (
+                  <TreemapChart
+                    arguments={data.arguments}
+                    clusters={data.clusters}
+                    level={treemapLevel.value}
+                    onTreeZoom={handleTreeZoom}
+                    fullHeight={true}
+                  />
+                ) : (
+                  <ScatterPlot
+                    arguments={data.arguments}
+                    clusters={data.clusters}
+                    selectedClusterId={selectedClusterId.value}
+                    targetLevel={chartType.value === "scatterAll" ? 1 : maxLevel}
+                    fullHeight={true}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

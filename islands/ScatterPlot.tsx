@@ -79,19 +79,33 @@ interface ScatterPlotProps {
   arguments: Argument[];
   clusters: Cluster[];
   selectedClusterId: string | null;
+  targetLevel?: number; // 1 = 全体表示, 最大レベル = 密度表示
+  fullHeight?: boolean; // フルスクリーン用
 }
 
 export default function ScatterPlot({
   arguments: args,
   clusters,
   selectedClusterId,
+  targetLevel = 1,
+  fullHeight = false,
 }: ScatterPlotProps) {
+  // 最大レベルを計算（密度表示用）
+  const maxLevel = Math.max(...clusters.map((c) => c.level));
   const plotRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
 
-  // Get level 1 cluster ID from an argument's cluster_ids
+  // Get cluster ID at specific level from an argument's cluster_ids
+  const getClusterIdAtLevel = (
+    clusterIds: string[],
+    level: number,
+  ): string | undefined => {
+    return clusterIds.find((id) => id.startsWith(`${level}_`));
+  };
+
+  // Get level 1 cluster ID from an argument's cluster_ids (backwards compatibility)
   const getLevel1ClusterId = (clusterIds: string[]): string | undefined => {
-    return clusterIds.find((id) => id.startsWith("1_"));
+    return getClusterIdAtLevel(clusterIds, 1);
   };
 
   // Calculate centroid for a set of points
@@ -140,13 +154,13 @@ export default function ScatterPlot({
       });
   };
 
-  // Get colors for points based on selection
+  // Get colors for points based on selection and targetLevel
   const getPointColors = (): string[] => {
     if (!selectedClusterId) {
-      // Main view: color by level 1 cluster
+      // Color by target level cluster
       return args.map((arg) => {
-        const level1Id = getLevel1ClusterId(arg.cluster_ids);
-        return level1Id ? getClusterColor(level1Id) : getClusterColor("1_0");
+        const clusterId = getClusterIdAtLevel(arg.cluster_ids, targetLevel);
+        return clusterId ? getClusterColor(clusterId) : getClusterColor("1_0");
       });
     } else {
       // Subcluster view: highlight selected cluster's children
@@ -216,10 +230,10 @@ export default function ScatterPlot({
     let annotations: PlotlyAnnotation[] = [];
 
     if (!selectedClusterId) {
-      // Main view: show level 1 cluster annotations
-      const level1Clusters = clusters.filter((c) => c.level === 1);
-      const clusterPoints = groupPointsByCluster(1);
-      annotations = buildAnnotations(level1Clusters, clusterPoints);
+      // Show annotations for target level clusters
+      const targetClusters = clusters.filter((c) => c.level === targetLevel);
+      const clusterPoints = groupPointsByCluster(targetLevel);
+      annotations = buildAnnotations(targetClusters, clusterPoints);
     } else {
       // Subcluster view: show child cluster annotations
       const childClusters = clusters.filter(
@@ -276,14 +290,18 @@ export default function ScatterPlot({
     } else {
       Plotly.react(plotRef.current, buildPlotData(), buildLayout());
     }
-  }, [selectedClusterId, args, clusters]);
+  }, [selectedClusterId, args, clusters, targetLevel]);
+
+  const heightClass = fullHeight ? "h-full" : "h-[350px] md:h-[500px]";
 
   return (
-    <div class="w-full">
-      <div ref={plotRef} class="w-full h-[350px] md:h-[500px]" />
-      <p class="text-sm text-base-content/60 text-center mt-2">
-        各点にカーソルを合わせると意見を確認できます
-      </p>
+    <div class={`w-full ${fullHeight ? "h-full" : ""}`}>
+      <div ref={plotRef} class={`w-full ${heightClass}`} />
+      {!fullHeight && (
+        <p class="text-sm text-base-content/60 text-center mt-2">
+          各点にカーソルを合わせると意見を確認できます
+        </p>
+      )}
     </div>
   );
 }
