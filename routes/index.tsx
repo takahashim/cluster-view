@@ -19,7 +19,7 @@ export default define.page(function Home() {
             Cluster View
           </h1>
           <p class="text-lg text-base-content/70">
-            hierarchical_result.json をアップロードして、
+            <a href="https://dd2030.org/kouchou-ai/" class="link link-primary" target="_blank" rel="noopener noreferrer">広聴AI</a>のhierarchical_result.json をアップロードして、
             <br />
             分析結果を可視化・共有できます
           </p>
