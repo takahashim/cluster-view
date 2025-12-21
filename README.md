@@ -1,17 +1,20 @@
-# Fresh project
+# Broadlistening
 
-Your new Fresh project is ready to go. You can follow the Fresh "Getting
-Started" guide here: https://fresh.deno.dev/docs/getting-started
+[広聴AI](https://github.com/digitaldemocracy/kouchou-ai)が出力する hierarchical_result.json をアップロードして可視化・共有するWebアプリケーションです。
 
-### Usage
+## 必要条件
 
-Make sure to install Deno:
-https://docs.deno.com/runtime/getting_started/installation
+- [Deno](https://docs.deno.com/runtime/getting_started/installation) 2.0以上
 
-Then start the project in development mode:
+## 開発
 
-```
+```bash
 deno task dev
 ```
 
-This will watch the project directory and restart as necessary.
+## 本番ビルド
+
+```bash
+deno task build
+deno task start
+```
