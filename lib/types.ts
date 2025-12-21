@@ -1,3 +1,5 @@
+// Value objects (from external JSON schema)
+
 export interface Argument {
   arg_id: string;
   argument: string;
@@ -35,6 +37,17 @@ export interface HierarchicalResult {
   comment_num?: number;
 }
 
+// Domain entity
+
+export interface Report {
+  id: string;
+  title: string;
+  data: HierarchicalResult;
+  shareToken: string;
+}
+
+// Persistence record
+
 export interface ReportRecord {
   id: string;
   shareToken: string;
@@ -43,10 +56,4 @@ export interface ReportRecord {
   createdAt: string;
   title?: string;
   shareEnabled: boolean;
-}
-
-export interface CreateReportResponse {
-  id: string;
-  shareToken: string;
-  shareUrl: string;
 }

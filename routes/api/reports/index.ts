@@ -1,39 +1,28 @@
 import { define } from "@/utils.ts";
-import { createReport } from "@/lib/db.ts";
-import {
-  validateHierarchicalResult,
-  ValidationError,
-} from "@/lib/validation.ts";
-import type { CreateReportResponse } from "@/lib/types.ts";
+import { createReport } from "@/lib/repository.ts";
+import { validateHierarchicalResult, ValidationError } from "@/lib/validation.ts";
 
 export const handler = define.handlers({
   async POST(ctx) {
     try {
-      // Parse JSON body
       const body = await ctx.req.json();
-
-      // Validate the data
       const validatedData = validateHierarchicalResult(body);
+      const report = await createReport(validatedData);
 
-      // Create report in database
-      const record = await createReport(validatedData);
-
-      // Build share URL
       const url = new URL(ctx.req.url);
-      const shareUrl = `${url.origin}/share/${record.shareToken}`;
+      const shareUrl = `${url.origin}/share/${report.shareToken}`;
 
-      const response: CreateReportResponse = {
-        id: record.id,
-        shareToken: record.shareToken,
-        shareUrl,
-      };
-
-      return new Response(JSON.stringify(response), {
-        status: 201,
-        headers: {
-          "Content-Type": "application/json",
+      return new Response(
+        JSON.stringify({
+          id: report.id,
+          shareToken: report.shareToken,
+          shareUrl,
+        }),
+        {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
         },
-      });
+      );
     } catch (error) {
       if (error instanceof ValidationError) {
         return new Response(
