@@ -18,3 +18,7 @@ deno task dev
 deno task build
 deno task start
 ```
+
+## ライセンス
+
+[MIT License](./LICENSE)

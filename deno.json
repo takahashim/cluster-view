@@ -1,4 +1,6 @@
 {
+  "version": "0.3.0",
+  "license": "MIT",
   "nodeModulesDir": "auto",
   "tasks": {
     "check": "deno fmt --check . && deno lint . && deno check",
