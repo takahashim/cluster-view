@@ -7,6 +7,7 @@ hierarchical_result.json
 ## 必要条件
 
 - [Deno](https://docs.deno.com/runtime/getting_started/installation) 2.0以上
+- [Deno Deploy](https://deno.com/deploy) (本番環境)
 
 ## 開発
 
