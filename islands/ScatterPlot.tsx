@@ -279,35 +279,11 @@ export default function ScatterPlot({
   }, [selectedClusterId, args, clusters]);
 
   return (
-    <div class="scatter-container">
-      <div ref={plotRef} class="scatter-plot" />
-      <p class="scatter-hint">
+    <div class="w-full">
+      <div ref={plotRef} class="w-full h-[350px] md:h-[500px]" />
+      <p class="text-sm text-base-content/60 text-center mt-2">
         各点にカーソルを合わせると意見を確認できます
       </p>
-
-      <style>{`
-        .scatter-container {
-          width: 100%;
-        }
-
-        .scatter-plot {
-          width: 100%;
-          height: 500px;
-        }
-
-        .scatter-hint {
-          font-size: 13px;
-          color: #64748b;
-          text-align: center;
-          margin: 8px 0 0;
-        }
-
-        @media (max-width: 640px) {
-          .scatter-plot {
-            height: 350px;
-          }
-        }
-      `}</style>
     </div>
   );
 }

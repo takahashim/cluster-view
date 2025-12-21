@@ -35,50 +35,15 @@ export const handler = define.handlers({
 export default define.page<PageData | undefined>(function SharePage(ctx) {
   if (!ctx.data) {
     return (
-      <div class="error-page">
+      <div class="min-h-screen flex items-center justify-center bg-base-200">
         <Head>
           <title>レポートが見つかりません</title>
         </Head>
-        <div class="error-content">
-          <h1>404</h1>
-          <p>レポートが見つかりません</p>
-          <a href="/">トップページに戻る</a>
+        <div class="text-center">
+          <h1 class="text-7xl font-bold text-base-content/20">404</h1>
+          <p class="text-lg text-base-content/60 mt-4 mb-6">レポートが見つかりません</p>
+          <a href="/" class="btn btn-primary">トップページに戻る</a>
         </div>
-        <style>{`
-          .error-page {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f8fafc;
-          }
-          .error-content {
-            text-align: center;
-          }
-          .error-content h1 {
-            font-size: 72px;
-            font-weight: 700;
-            color: #cbd5e1;
-            margin: 0;
-          }
-          .error-content p {
-            font-size: 18px;
-            color: #64748b;
-            margin: 16px 0 24px;
-          }
-          .error-content a {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #3b82f6;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
-          }
-          .error-content a:hover {
-            background: #2563eb;
-          }
-        `}</style>
       </div>
     );
   }
