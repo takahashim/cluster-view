@@ -73,7 +73,9 @@ function validateArgument(arg: Record<string, unknown>): boolean {
   return (
     typeof arg.arg_id === "string" &&
     typeof arg.argument === "string" &&
-    (typeof arg.comment_id === "number" ||
+    // comment_id is optional in newer kouchou-ai data
+    (arg.comment_id === undefined ||
+      typeof arg.comment_id === "number" ||
       typeof arg.comment_id === "string") &&
     typeof arg.x === "number" &&
     typeof arg.y === "number" &&

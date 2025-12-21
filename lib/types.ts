@@ -3,7 +3,7 @@
 export interface Argument {
   arg_id: string;
   argument: string;
-  comment_id: number | string;
+  comment_id?: number | string;
   x: number;
   y: number;
   p?: number;
