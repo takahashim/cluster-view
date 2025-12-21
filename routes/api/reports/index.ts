@@ -1,5 +1,6 @@
 import { define } from "@/utils.ts";
 import { createReport } from "@/lib/repository.ts";
+import { getCurrentUser } from "@/lib/auth.ts";
 import {
   validateHierarchicalResult,
   ValidationError,
@@ -8,9 +9,21 @@ import {
 export const handler = define.handlers({
   async POST(ctx) {
     try {
+      // Authentication required
+      const user = await getCurrentUser(ctx.req);
+      if (!user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
       const body = await ctx.req.json();
       const validatedData = validateHierarchicalResult(body);
-      const report = await createReport(validatedData);
+      const report = await createReport(validatedData, user.id);
 
       const url = new URL(ctx.req.url);
       const shareUrl = `${url.origin}/share/${report.shareToken}`;

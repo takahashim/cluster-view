@@ -1,10 +1,22 @@
 import { Head } from "fresh/runtime";
 import { define } from "../utils.ts";
+import { getCurrentUser } from "@/lib/auth.ts";
+import type { User } from "@/lib/repository.ts";
 import FileUploader from "../islands/FileUploader.tsx";
+import Header from "@/components/Header.tsx";
 
-export default define.page(function Home() {
+export const handler = define.handlers({
+  async GET(ctx) {
+    const user = await getCurrentUser(ctx.req);
+    return { data: { user } };
+  },
+});
+
+export default define.page<typeof handler>(function Home({ data }) {
+  const user = data.user as User | null;
+
   return (
-    <div class="min-h-screen bg-base-200 p-6 md:p-10">
+    <div class="min-h-screen bg-base-200">
       <Head>
         <title>Cluster View - レポートビューア</title>
         <meta
@@ -13,7 +25,9 @@ export default define.page(function Home() {
         />
       </Head>
 
-      <main class="max-w-3xl mx-auto">
+      <Header user={user} />
+
+      <main class="max-w-3xl mx-auto p-6 md:p-10">
         <div class="text-center mb-12">
           <h1 class="text-4xl md:text-5xl font-bold text-base-content mb-4">
             Cluster View
@@ -32,7 +46,7 @@ export default define.page(function Home() {
           </p>
         </div>
 
-        <FileUploader />
+        <FileUploader user={user} />
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
           <div class="card bg-base-100 shadow-sm">

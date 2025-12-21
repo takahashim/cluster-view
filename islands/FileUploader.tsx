@@ -1,7 +1,12 @@
 import { useSignal } from "@preact/signals";
 import { useCallback } from "preact/hooks";
+import type { User } from "@/lib/repository.ts";
 
-export default function FileUploader() {
+interface FileUploaderProps {
+  user: User | null;
+}
+
+export default function FileUploader({ user }: FileUploaderProps) {
   const isDragging = useSignal(false);
   const isUploading = useSignal(false);
   const errorMessage = useSignal<string | null>(null);
@@ -32,6 +37,9 @@ export default function FileUploader() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("ログインが必要です");
+        }
         const errorData = await response.json();
         throw new Error(errorData.error || "アップロードに失敗しました");
       }
@@ -71,6 +79,38 @@ export default function FileUploader() {
     const file = input.files?.[0];
     if (file) handleFile(file);
   }, [handleFile]);
+
+  // Show login prompt when not logged in
+  if (!user) {
+    return (
+      <div class="w-full max-w-md mx-auto">
+        <div class="border-2 border-dashed rounded-2xl p-12 text-center border-base-content/20 bg-base-100">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-12 w-12 mx-auto mb-4 text-base-content/40"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="8.5" cy="7" r="4" />
+            <line x1="20" y1="8" x2="20" y2="14" />
+            <line x1="23" y1="11" x2="17" y2="11" />
+          </svg>
+          <p class="font-medium text-base-content mb-2">
+            ログインが必要です
+          </p>
+          <p class="text-base-content/60 text-sm mb-4">
+            レポートを作成するにはログインしてください
+          </p>
+          <a href="/api/auth/google" class="btn btn-primary">
+            Googleでログイン
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div class="w-full max-w-md mx-auto">

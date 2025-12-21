@@ -53,18 +53,29 @@ export interface FilterState {
 export interface Report {
   id: string;
   title: string;
-  data: HierarchicalResult;
+  data?: HierarchicalResult; // Optional for list views
   shareToken: string;
+  createdAt: string;
 }
 
-// Persistence record
+// Persistence records
 
 export interface ReportRecord {
   id: string;
   shareToken: string;
   ownerId: string | null;
-  data: HierarchicalResult;
+  data?: HierarchicalResult; // For MemoryStore
+  dataChunks?: number; // Number of chunks for KV storage
   createdAt: string;
   title?: string;
   shareEnabled: boolean;
+}
+
+export interface UserRecord {
+  id: string;
+  email: string;
+  name: string;
+  picture?: string;
+  createdAt: string;
+  lastLoginAt: string;
 }

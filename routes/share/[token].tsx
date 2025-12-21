@@ -9,7 +9,7 @@ export const handler = define.handlers({
   async GET(ctx) {
     const report = await getReportByToken(ctx.params.token);
 
-    if (!report) {
+    if (!report || !report.data) {
       throw new HttpError(404, "Report not found");
     }
 
@@ -19,16 +19,17 @@ export const handler = define.handlers({
 
 export default define.page<typeof handler>(function SharePage({ data }) {
   const report: Report = data;
+  const reportData = report.data!; // Guaranteed by handler check
 
   return (
     <>
       <Head>
         <title>{report.title} - Cluster View</title>
-        <meta name="description" content={report.data.overview.slice(0, 160)} />
+        <meta name="description" content={reportData.overview.slice(0, 160)} />
         <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
       </Head>
       <ReportView
-        data={report.data}
+        data={reportData}
         title={report.title}
         shareToken={report.shareToken}
       />
