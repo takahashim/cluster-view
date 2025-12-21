@@ -26,7 +26,7 @@ export default function ClusterCard(
         <div class="flex items-start justify-between gap-3">
           <h3 class="card-title text-base">{cluster.label}</h3>
           <span
-            class="badge badge-sm text-white"
+            class="px-2 py-1 text-xs font-medium text-white rounded-full shrink-0"
             style={{ backgroundColor: color }}
           >
             {cluster.value}件

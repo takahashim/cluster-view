@@ -161,7 +161,7 @@ export default function ReportView(
           <div class="flex items-center gap-3 mb-4">
             <button
               type="button"
-              class="btn btn-ghost btn-sm gap-1"
+              class="btn btn-outline btn-sm gap-2"
               onClick={handleBackClick}
             >
               <svg
@@ -174,12 +174,11 @@ export default function ReportView(
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
+                <polyline points="15 18 9 12 15 6" />
               </svg>
-              戻る
+              一覧に戻る
             </button>
-            <span class="text-base font-semibold">{selectedCluster.label}</span>
+            <span class="text-lg font-semibold">{selectedCluster.label}</span>
           </div>
         )}
 
