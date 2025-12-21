@@ -1,79 +1,28 @@
 import { useEffect, useRef } from "preact/hooks";
 import type { Argument, Cluster } from "@/lib/types.ts";
 import { getClusterColor, INACTIVE_COLOR } from "@/lib/colors.ts";
+import { CHART_HEIGHT_CLASS, CHART_HEIGHT_FULL } from "@/lib/constants.ts";
+import type {
+  PlotlyScatterData,
+  PlotlyScatterLayout,
+  PlotlyAnnotation,
+  PlotlyConfig,
+} from "@/lib/plotly-types.ts";
 
 // Declare Plotly type on globalThis
 declare const Plotly: {
   newPlot: (
     element: HTMLElement,
-    data: PlotlyData[],
-    layout: PlotlyLayout,
+    data: PlotlyScatterData[],
+    layout: PlotlyScatterLayout,
     config?: PlotlyConfig,
   ) => Promise<void>;
   react: (
     element: HTMLElement,
-    data: PlotlyData[],
-    layout: PlotlyLayout,
+    data: PlotlyScatterData[],
+    layout: PlotlyScatterLayout,
   ) => Promise<void>;
 } | undefined;
-
-interface PlotlyData {
-  x: number[];
-  y: number[];
-  mode: string;
-  type: string;
-  text: string[];
-  marker: {
-    size: number;
-    opacity: number;
-    color: string[];
-  };
-  hovertemplate: string;
-}
-
-interface PlotlyLayout {
-  showlegend: boolean;
-  hovermode: string;
-  xaxis: {
-    showgrid: boolean;
-    zeroline: boolean;
-    showticklabels: boolean;
-  };
-  yaxis: {
-    showgrid: boolean;
-    zeroline: boolean;
-    showticklabels: boolean;
-  };
-  annotations: PlotlyAnnotation[];
-  margin: {
-    l: number;
-    r: number;
-    t: number;
-    b: number;
-  };
-  autosize: boolean;
-}
-
-interface PlotlyAnnotation {
-  x: number;
-  y: number;
-  text: string;
-  showarrow: boolean;
-  font: {
-    size: number;
-    color: string;
-  };
-  bgcolor: string;
-  borderpad: number;
-  opacity: number;
-}
-
-interface PlotlyConfig {
-  responsive: boolean;
-  displayModeBar: boolean;
-  modeBarButtonsToRemove: string[];
-  displaylogo: boolean;
-}
 
 interface ScatterPlotProps {
   arguments: Argument[];
@@ -81,6 +30,8 @@ interface ScatterPlotProps {
   selectedClusterId: string | null;
   targetLevel?: number; // 1 = 全体表示, 最大レベル = 密度表示
   fullHeight?: boolean; // フルスクリーン用
+  filteredArgumentIds?: Set<string>; // フィルタで選択された引数ID
+  filteredClusterIds?: Set<string>; // 密度フィルタで選択されたクラスタID
 }
 
 export default function ScatterPlot({
@@ -89,6 +40,8 @@ export default function ScatterPlot({
   selectedClusterId,
   targetLevel = 1,
   fullHeight = false,
+  filteredArgumentIds,
+  filteredClusterIds,
 }: ScatterPlotProps) {
   // 最大レベルを計算（密度表示用）
   const maxLevel = Math.max(...clusters.map((c) => c.level));
@@ -154,12 +107,27 @@ export default function ScatterPlot({
       });
   };
 
-  // Get colors for points based on selection and targetLevel
+  // Get colors for points based on selection, targetLevel, and filters
   const getPointColors = (): string[] => {
     if (!selectedClusterId) {
       // Color by target level cluster
       return args.map((arg) => {
+        // 引数フィルタが適用されている場合、フィルタに含まれない引数はグレー表示
+        if (filteredArgumentIds && !filteredArgumentIds.has(arg.arg_id)) {
+          return INACTIVE_COLOR;
+        }
+
         const clusterId = getClusterIdAtLevel(arg.cluster_ids, targetLevel);
+
+        // 密度フィルタが適用されている場合、フィルタに含まれないクラスタはグレー表示
+        if (filteredClusterIds && clusterId) {
+          // 最深レベルのクラスタIDを取得して、フィルタに含まれているか確認
+          const deepestClusterId = getClusterIdAtLevel(arg.cluster_ids, maxLevel);
+          if (deepestClusterId && !filteredClusterIds.has(deepestClusterId)) {
+            return INACTIVE_COLOR;
+          }
+        }
+
         return clusterId ? getClusterColor(clusterId) : getClusterColor("1_0");
       });
     } else {
@@ -170,6 +138,11 @@ export default function ScatterPlot({
       const childIds = new Set(childClusters.map((c) => c.id));
 
       return args.map((arg) => {
+        // 引数フィルタが適用されている場合、フィルタに含まれない引数はグレー表示
+        if (filteredArgumentIds && !filteredArgumentIds.has(arg.arg_id)) {
+          return INACTIVE_COLOR;
+        }
+
         // Check if this point belongs to one of the child clusters
         const belongsToChild = arg.cluster_ids.some((id) => childIds.has(id));
         if (belongsToChild) {
@@ -205,7 +178,7 @@ export default function ScatterPlot({
   };
 
   // Build plot data
-  const buildPlotData = (): PlotlyData[] => {
+  const buildPlotData = (): PlotlyScatterData[] => {
     const colors = getPointColors();
 
     return [
@@ -226,7 +199,7 @@ export default function ScatterPlot({
   };
 
   // Build layout
-  const buildLayout = (): PlotlyLayout => {
+  const buildLayout = (): PlotlyScatterLayout => {
     let annotations: PlotlyAnnotation[] = [];
 
     if (!selectedClusterId) {
@@ -290,9 +263,9 @@ export default function ScatterPlot({
     } else {
       Plotly.react(plotRef.current, buildPlotData(), buildLayout());
     }
-  }, [selectedClusterId, args, clusters, targetLevel]);
+  }, [selectedClusterId, args, clusters, targetLevel, filteredArgumentIds, filteredClusterIds]);
 
-  const heightClass = fullHeight ? "h-full" : "h-[350px] md:h-[500px]";
+  const heightClass = fullHeight ? CHART_HEIGHT_FULL : CHART_HEIGHT_CLASS;
 
   return (
     <div class={`w-full ${fullHeight ? "h-full" : ""}`}>

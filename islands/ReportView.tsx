@@ -1,17 +1,18 @@
-import { useSignal } from "@preact/signals";
+import { useSignal, useComputed } from "@preact/signals";
 import type { Cluster, HierarchicalResult } from "@/lib/types.ts";
+import type { ChartType } from "@/lib/constants.ts";
 import Overview from "@/components/Overview.tsx";
 import ClusterGrid from "@/components/ClusterGrid.tsx";
+import ChartToolbar from "@/components/ChartToolbar.tsx";
 import ScatterPlot from "./ScatterPlot.tsx";
 import TreemapChart from "./TreemapChart.tsx";
+import FilterPanel, { applyFilters, type FilterState } from "./FilterPanel.tsx";
 
 interface ReportViewProps {
   data: HierarchicalResult;
   title: string;
   shareToken: string;
 }
-
-type ChartType = "scatterAll" | "scatterDensity" | "treemap";
 
 export default function ReportView(
   { data, title, shareToken }: ReportViewProps,
@@ -20,14 +21,51 @@ export default function ReportView(
   const copied = useSignal(false);
   const chartType = useSignal<ChartType>("scatterAll");
   const isFullscreen = useSignal(false);
-  const treemapLevel = useSignal("0"); // Treemapのズームレベル
+  const treemapLevel = useSignal("0");
+  const isFilterPanelOpen = useSignal(false);
 
-  // 最大レベルを計算（密度表示用）
+  // フィルタ状態
+  const filterState = useSignal<FilterState>({
+    textSearch: "",
+    maxDensity: 1,
+    minValue: 1,
+    attributeFilters: {},
+  });
+
+  // 最大レベル
   const maxLevel = Math.max(...data.clusters.map((c) => c.level));
+
+  // フィルタ結果を計算
+  const filterResult = useComputed(() => {
+    return applyFilters(data.arguments, data.clusters, filterState.value);
+  });
+
+  // フィルタが適用中かどうか
+  const isFiltering = useComputed(() => filterResult.value.isFiltering);
+
+  // フィルタ適用後の引数ID
+  const filteredArgumentIds = useComputed(() => filterResult.value.filteredArgumentIds);
+
+  // 密度ビュー用のフィルタ済みクラスタID
+  const filteredClusterIds = useComputed(() => filterResult.value.filteredClusterIds);
 
   // Treemapズーム用のハンドラ
   const handleTreeZoom = (level: string) => {
     treemapLevel.value = level;
+  };
+
+  // フィルタ変更ハンドラ
+  const handleFilterChange = (newState: FilterState) => {
+    filterState.value = newState;
+  };
+
+  // チャートタイプ変更ハンドラ
+  const handleChartTypeChange = (type: ChartType) => {
+    chartType.value = type;
+    selectedClusterId.value = null;
+    if (type === "treemap") {
+      treemapLevel.value = "0";
+    }
   };
 
   // Get level 1 clusters
@@ -78,9 +116,35 @@ export default function ReportView(
   const selectedCluster = selectedClusterId.value
     ? getClusterById(selectedClusterId.value)
     : null;
-  const displayClusters = selectedClusterId.value
-    ? getChildClusters(selectedClusterId.value)
-    : level1Clusters;
+
+  // 表示するクラスタを計算
+  const displayClusters = (() => {
+    if (selectedClusterId.value) {
+      return getChildClusters(selectedClusterId.value);
+    }
+
+    if (chartType.value === "scatterDensity") {
+      // 密度ビュー: 最深レベルのクラスタでフィルタ適用
+      const deepestLevelClusters = data.clusters.filter((c) => c.level === maxLevel);
+      return deepestLevelClusters
+        .filter((c) => filteredClusterIds.value.has(c.id))
+        .sort((a, b) => b.value - a.value);
+    }
+
+    return level1Clusters;
+  })();
+
+  // アクティブなフィルタ数を計算
+  const activeFilterCount = useComputed(() => {
+    let count = 0;
+    if (filterState.value.textSearch.trim() !== "") count++;
+    if (filterState.value.maxDensity < 1) count++;
+    if (filterState.value.minValue > 1) count++;
+    for (const values of Object.values(filterState.value.attributeFilters)) {
+      if (values.length > 0) count++;
+    }
+    return count;
+  });
 
   return (
     <div class="min-h-screen bg-base-200">
@@ -164,72 +228,50 @@ export default function ReportView(
           <div class="card-body">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
               <h2 class="card-title text-lg">意見の分布</h2>
-              <div class="flex items-center gap-2">
-                <div class="join">
-                  <button
-                    type="button"
-                    class={`btn btn-sm join-item ${chartType.value === "scatterAll" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => {
-                      chartType.value = "scatterAll";
-                      selectedClusterId.value = null;
-                    }}
-                  >
-                    全体
-                  </button>
-                  <button
-                    type="button"
-                    class={`btn btn-sm join-item ${chartType.value === "scatterDensity" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => {
-                      chartType.value = "scatterDensity";
-                      selectedClusterId.value = null;
-                    }}
-                  >
-                    密度
-                  </button>
-                  <button
-                    type="button"
-                    class={`btn btn-sm join-item ${chartType.value === "treemap" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => {
-                      chartType.value = "treemap";
-                      selectedClusterId.value = null;
-                      treemapLevel.value = "0";
-                    }}
-                  >
-                    ツリー
-                  </button>
-                </div>
+              <ChartToolbar
+                chartType={chartType.value}
+                onChartTypeChange={handleChartTypeChange}
+                isFiltering={isFiltering.value}
+                activeFilterCount={activeFilterCount.value}
+                onFilterClick={() => { isFilterPanelOpen.value = true; }}
+                onFullscreenClick={() => { isFullscreen.value = true; }}
+              />
+            </div>
+
+            {/* フィルタ適用中の表示 */}
+            {isFiltering.value && (
+              <div class="alert alert-info py-2 mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                </svg>
+                <span class="text-sm">
+                  フィルタ適用中: {filteredArgumentIds.value.size} / {data.arguments.length} 件表示
+                </span>
                 <button
                   type="button"
-                  class="btn btn-sm btn-ghost"
+                  class="btn btn-xs btn-ghost"
                   onClick={() => {
-                    isFullscreen.value = true;
+                    filterState.value = {
+                      textSearch: "",
+                      maxDensity: 1,
+                      minValue: 1,
+                      attributeFilters: {},
+                    };
                   }}
-                  title="全画面表示"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-5 w-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <polyline points="15 3 21 3 21 9" />
-                    <polyline points="9 21 3 21 3 15" />
-                    <line x1="21" y1="3" x2="14" y2="10" />
-                    <line x1="3" y1="21" x2="10" y2="14" />
-                  </svg>
+                  クリア
                 </button>
               </div>
-            </div>
+            )}
+
             {chartType.value === "treemap" ? (
               <TreemapChart
                 arguments={data.arguments}
                 clusters={data.clusters}
                 level={treemapLevel.value}
                 onTreeZoom={handleTreeZoom}
+                filteredArgumentIds={isFiltering.value ? filteredArgumentIds.value : undefined}
+                filteredClusterIds={isFiltering.value ? filteredClusterIds.value : undefined}
               />
             ) : (
               <ScatterPlot
@@ -237,6 +279,8 @@ export default function ReportView(
                 clusters={data.clusters}
                 selectedClusterId={selectedClusterId.value}
                 targetLevel={chartType.value === "scatterAll" ? 1 : maxLevel}
+                filteredArgumentIds={isFiltering.value ? filteredArgumentIds.value : undefined}
+                filteredClusterIds={chartType.value === "scatterDensity" ? filteredClusterIds.value : undefined}
               />
             )}
           </div>
@@ -308,39 +352,13 @@ export default function ReportView(
 
               {/* 表示切り替えボタン */}
               <div class="absolute top-4 left-4 z-10">
-                <div class="join">
-                  <button
-                    type="button"
-                    class={`btn btn-sm join-item ${chartType.value === "scatterAll" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => {
-                      chartType.value = "scatterAll";
-                      selectedClusterId.value = null;
-                    }}
-                  >
-                    全体
-                  </button>
-                  <button
-                    type="button"
-                    class={`btn btn-sm join-item ${chartType.value === "scatterDensity" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => {
-                      chartType.value = "scatterDensity";
-                      selectedClusterId.value = null;
-                    }}
-                  >
-                    密度
-                  </button>
-                  <button
-                    type="button"
-                    class={`btn btn-sm join-item ${chartType.value === "treemap" ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => {
-                      chartType.value = "treemap";
-                      selectedClusterId.value = null;
-                      treemapLevel.value = "0";
-                    }}
-                  >
-                    ツリー
-                  </button>
-                </div>
+                <ChartToolbar
+                  chartType={chartType.value}
+                  onChartTypeChange={handleChartTypeChange}
+                  isFiltering={isFiltering.value}
+                  activeFilterCount={activeFilterCount.value}
+                  onFilterClick={() => { isFilterPanelOpen.value = true; }}
+                />
               </div>
 
               {/* フルスクリーンチャート */}
@@ -352,6 +370,8 @@ export default function ReportView(
                     level={treemapLevel.value}
                     onTreeZoom={handleTreeZoom}
                     fullHeight={true}
+                    filteredArgumentIds={isFiltering.value ? filteredArgumentIds.value : undefined}
+                    filteredClusterIds={isFiltering.value ? filteredClusterIds.value : undefined}
                   />
                 ) : (
                   <ScatterPlot
@@ -360,6 +380,8 @@ export default function ReportView(
                     selectedClusterId={selectedClusterId.value}
                     targetLevel={chartType.value === "scatterAll" ? 1 : maxLevel}
                     fullHeight={true}
+                    filteredArgumentIds={isFiltering.value ? filteredArgumentIds.value : undefined}
+                    filteredClusterIds={chartType.value === "scatterDensity" ? filteredClusterIds.value : undefined}
                   />
                 )}
               </div>
@@ -367,6 +389,18 @@ export default function ReportView(
           </div>
         </div>
       )}
+
+      {/* フィルタパネル */}
+      <FilterPanel
+        arguments={data.arguments}
+        clusters={data.clusters}
+        isOpen={isFilterPanelOpen.value}
+        onClose={() => {
+          isFilterPanelOpen.value = false;
+        }}
+        filterState={filterState.value}
+        onFilterChange={handleFilterChange}
+      />
     </div>
   );
 }

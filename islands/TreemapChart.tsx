@@ -1,58 +1,30 @@
 import { useEffect, useRef } from "preact/hooks";
 import type { Argument, Cluster } from "@/lib/types.ts";
+import { CHART_HEIGHT_CLASS, CHART_HEIGHT_FULL } from "@/lib/constants.ts";
+import type {
+  PlotlyTreemapData,
+  PlotlyTreemapLayout,
+  PlotlyConfig,
+} from "@/lib/plotly-types.ts";
 
 // Declare Plotly type on globalThis
 declare const Plotly: {
   newPlot: (
     element: HTMLElement,
     data: PlotlyTreemapData[],
-    layout: PlotlyLayout,
+    layout: PlotlyTreemapLayout,
     config?: PlotlyConfig,
   ) => Promise<void>;
   react: (
     element: HTMLElement,
     data: PlotlyTreemapData[],
-    layout: PlotlyLayout,
+    layout: PlotlyTreemapLayout,
   ) => Promise<void>;
 } | undefined;
 
-interface PlotlyTreemapData {
-  type: "treemap";
-  ids: string[];
-  labels: string[];
-  parents: string[];
-  values: number[];
-  customdata: string[];
-  level: string;
-  branchvalues: "total";
-  marker: {
-    colors: string[];
-    line: {
-      width: number;
-      color: string;
-    };
-  };
-  hoverinfo: string;
-  hovertemplate: string;
-  hoverlabel: {
-    align: string;
-  };
-  texttemplate: string;
-  maxdepth: number;
-  pathbar: {
-    thickness: number;
-  };
-}
-
-interface PlotlyLayout {
-  margin: { l: number; r: number; b: number; t: number };
-  colorway: string[];
-}
-
-interface PlotlyConfig {
-  responsive: boolean;
-  displayModeBar: boolean;
-  locale: string;
+// Extended node type for treemap with filter flag
+interface TreemapNode extends Cluster {
+  filtered?: boolean;
 }
 
 interface TreemapChartProps {
@@ -61,10 +33,12 @@ interface TreemapChartProps {
   level: string;
   onTreeZoom: (level: string) => void;
   fullHeight?: boolean;
+  filteredArgumentIds?: Set<string>;
+  filteredClusterIds?: Set<string>;
 }
 
-// Convert argument to cluster-like structure for treemap
-function convertArgumentToCluster(argument: Argument): Cluster & { filtered?: boolean } {
+// Convert argument to treemap node structure
+function convertArgumentToNode(argument: Argument): TreemapNode {
   return {
     level: 3,
     id: argument.arg_id,
@@ -82,20 +56,54 @@ export default function TreemapChart({
   level,
   onTreeZoom,
   fullHeight = false,
+  filteredArgumentIds,
+  filteredClusterIds,
 }: TreemapChartProps) {
   const plotRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
 
+  // 最深レベルを取得
+  const maxLevel = Math.max(...clusters.map((c) => c.level));
+
   // Build treemap data
   const buildTreemapData = (): PlotlyTreemapData[] => {
-    const convertedArgumentList = args.map((arg) => convertArgumentToCluster(arg));
+    const isArgumentFiltering = !!filteredArgumentIds;
+    const isClusterFiltering = !!filteredClusterIds;
 
-    // Create the node list with root cluster having empty parent
-    const list = [
-      { ...clusters[0], parent: "" },
-      ...clusters.slice(1),
-      ...convertedArgumentList,
-    ];
+    // Convert arguments to treemap nodes with filter status
+    const argumentNodes: TreemapNode[] = args.map((arg) => {
+      const node = convertArgumentToNode(arg);
+      // 引数フィルタ
+      if (isArgumentFiltering && !filteredArgumentIds.has(arg.arg_id)) {
+        return { ...node, filtered: true };
+      }
+      // 密度フィルタ（最深レベルのクラスタIDで判定）
+      if (isClusterFiltering) {
+        const deepestClusterId = arg.cluster_ids.find((id) => id.startsWith(`${maxLevel}_`));
+        if (deepestClusterId && !filteredClusterIds.has(deepestClusterId)) {
+          return { ...node, filtered: true };
+        }
+      }
+      return node;
+    });
+
+    // Convert clusters to treemap nodes with filter status
+    const clusterNodes: TreemapNode[] = clusters.map((cluster, index) => {
+      const node: TreemapNode = index === 0
+        ? { ...cluster, parent: "" }
+        : { ...cluster };
+
+      // 最深レベルのクラスタに対して密度フィルタを適用
+      if (isClusterFiltering && cluster.level === maxLevel) {
+        if (!filteredClusterIds.has(cluster.id)) {
+          return { ...node, filtered: true };
+        }
+      }
+      return node;
+    });
+
+    // Combine all nodes
+    const list: TreemapNode[] = [...clusterNodes, ...argumentNodes];
 
     const ids = list.map((node) => node.id);
     const labels = list.map((node) => {
@@ -104,12 +112,13 @@ export default function TreemapChart({
         : node.label.replace(/(.{15})/g, "$1<br />");
     });
     const parents = list.map((node) => node.parent);
-    const values = list.map((node) => node.value);
+    const values = list.map((node) => node.filtered ? 0 : node.value);
     const customdata = list.map((node) => {
+      if (node.filtered) return "";
       const takeaway = node.takeaway?.replace(/(.{15})/g, "$1<br />") || "";
       return takeaway;
     });
-    const colors = list.map(() => ""); // Use default colorway
+    const colors = list.map((node) => node.filtered ? "#cccccc" : "");
 
     const data: PlotlyTreemapData = {
       type: "treemap",
@@ -142,7 +151,7 @@ export default function TreemapChart({
     return [data];
   };
 
-  const layout: PlotlyLayout = {
+  const layout: PlotlyTreemapLayout = {
     margin: { l: 10, r: 10, b: 10, t: 30 },
     colorway: [
       "#b3daa1",
@@ -223,9 +232,9 @@ export default function TreemapChart({
         darkenPathbar();
       });
     }
-  }, [level, args, clusters]);
+  }, [level, args, clusters, filteredArgumentIds, filteredClusterIds]);
 
-  const heightClass = fullHeight ? "h-full" : "h-[350px] md:h-[500px]";
+  const heightClass = fullHeight ? CHART_HEIGHT_FULL : CHART_HEIGHT_CLASS;
 
   return (
     <div class={`w-full ${fullHeight ? "h-full" : ""}`}>
