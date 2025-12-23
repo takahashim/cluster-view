@@ -1,61 +1,77 @@
 /**
- * I18N Module - Main Entry Point
+ * I18N Module
  *
- * This module provides internationalization support for the application.
+ * Provides internationalization support using island-i18n.
  *
  * To add a new language:
- * 1. Create translations/{locale}.json file
- * 2. Edit config.ts: import the JSON and add to SUPPORTED_LOCALES, translations, LOCALE_NAMES
- *
- * Import patterns:
- * - For types only: import type { ... } from "@/lib/i18n/index.ts"
- * - For server-side: import { createI18nState, detectLocale } from "@/lib/i18n/index.ts"
- * - For interpolation: import { interpolate } from "@/lib/i18n/index.ts"
- *
- * File organization:
- * - config.ts: Language config, translations data, constants
- * - types.ts: Base type definitions (Locale, Translations, etc.)
- * - derived-types.ts: Types derived from translation JSON
- * - interpolate.ts: String interpolation utility
- * - server.ts: Server-only functions (locale detection, translation creation)
+ * 1. Create translations/{locale}.json file (include "localeName" key)
+ * 2. Import the JSON below and add to translations object
+ * 3. Add locale to "locales" array in defineI18n config
  */
+
+import { defineI18n, interpolate, type I18nStateOf } from "island-i18n";
+import ja from "./translations/ja.json" with { type: "json" };
+import en from "./translations/en.json" with { type: "json" };
+
+// =============================================================================
+// I18n Configuration
+// =============================================================================
+
+const i18n = defineI18n({
+  locales: ["ja", "en"] as const,
+  defaultLocale: "ja",
+  translations: { ja, en },
+});
+
+/** Display names for each locale (derived from translations) */
+export const LOCALE_NAMES = {
+  ja: ja.localeName,
+  en: en.localeName,
+} as const;
 
 // =============================================================================
 // Type Exports
 // =============================================================================
 
-// Base types
-export type { I18nState, Locale } from "./types.ts";
+/** Supported locale type */
+export type Locale = (typeof i18n.locales)[number];
 
-// Derived types from translation JSON
-export type { TranslationsData } from "./derived-types.ts";
+/** Translations data structure */
+export type TranslationsData = typeof ja;
+
+/** Locale names mapping */
+export type LocaleNames = typeof LOCALE_NAMES;
+
+/** I18n state for Fresh context */
+export type { I18nState } from "island-i18n";
 
 // =============================================================================
 // Config Exports
 // =============================================================================
 
-export {
-  DEFAULT_LOCALE,
-  LOCALE_COOKIE_MAX_AGE,
-  LOCALE_COOKIE_NAME,
-  LOCALE_NAMES,
-  SUPPORTED_LOCALES,
-} from "./config.ts";
+export const SUPPORTED_LOCALES = i18n.locales;
+export const DEFAULT_LOCALE = i18n.defaultLocale;
 
 // =============================================================================
-// Utility Exports
+// Function Exports
 // =============================================================================
 
-export { interpolate } from "./interpolate.ts";
+export { interpolate };
 
-// =============================================================================
-// Server-side Function Exports
-// =============================================================================
+/** Detect locale from request (cookie takes priority over Accept-Language header) */
+export function detectLocale(request: Request): Locale {
+  return i18n.detectLocale(request) as Locale;
+}
 
-export {
-  createI18nState,
-  detectLocale,
-  detectLocaleFromHeader,
-  getLocaleFromCookie,
-  getTranslations,
-} from "./server.ts";
+/** Get translations for a specific locale */
+export function getTranslations(locale: Locale): TranslationsData {
+  return i18n.getTranslations(locale) as TranslationsData;
+}
+
+/** I18n state with correct types for this application */
+export type AppI18nState = I18nStateOf<typeof i18n>;
+
+/** Create i18n state from request */
+export function createI18nState(request: Request): AppI18nState {
+  return i18n.createState(request) as AppI18nState;
+}

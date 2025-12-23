@@ -5,10 +5,9 @@
  * Stores preference in a cookie for persistence.
  */
 
+import { setLocaleCookie } from "island-i18n";
 import {
   type Locale,
-  LOCALE_COOKIE_MAX_AGE,
-  LOCALE_COOKIE_NAME,
   LOCALE_NAMES,
   SUPPORTED_LOCALES,
 } from "@/lib/i18n/index.ts";
@@ -23,11 +22,8 @@ export default function LanguageSwitcher(
   const handleChange = (newLocale: Locale) => {
     if (newLocale === currentLocale) return;
 
-    // Save preference to cookie
-    document.cookie =
-      `${LOCALE_COOKIE_NAME}=${newLocale};path=/;max-age=${LOCALE_COOKIE_MAX_AGE};SameSite=Lax`;
-
-    // Reload page to apply new locale
+    // Save preference to cookie and reload
+    setLocaleCookie(newLocale);
     globalThis.location.reload();
   };
 
