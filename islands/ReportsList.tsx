@@ -1,6 +1,5 @@
 import { useSignal } from "@preact/signals";
-import type { ReportsPageStrings } from "@/lib/i18n/index.ts";
-import type { Locale } from "@/lib/i18n/types.ts";
+import type { Locale, TranslationsData } from "@/lib/i18n/index.ts";
 
 interface ReportSummary {
   id: string;
@@ -11,7 +10,7 @@ interface ReportSummary {
 
 interface ReportsListProps {
   initialReports: ReportSummary[];
-  strings: ReportsPageStrings;
+  strings: Pick<TranslationsData, "common" | "reports">;
   locale: Locale;
 }
 

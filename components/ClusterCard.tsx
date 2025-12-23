@@ -1,14 +1,14 @@
 import type { Cluster } from "@/lib/types.ts";
 import {
   interpolateTemplate,
-  type SharePageStrings,
+  type TranslationsData,
 } from "@/lib/i18n/index.ts";
 
 interface ClusterCardProps {
   cluster: Cluster;
   color: string;
   onClick?: () => void;
-  strings: SharePageStrings;
+  strings: Pick<TranslationsData, "common" | "reportView">;
 }
 
 export default function ClusterCard(

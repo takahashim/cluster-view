@@ -1,17 +1,19 @@
 import type { User } from "@/lib/repository.ts";
-import type { Locale, TranslateFunction } from "@/lib/i18n/types.ts";
+import type { Locale, TranslationsData } from "@/lib/i18n/index.ts";
 import LanguageSwitcher from "@/islands/LanguageSwitcher.tsx";
 
 interface HeaderProps {
   user: User | null;
   showReportsLink?: boolean;
-  t: TranslateFunction;
+  strings: Pick<TranslationsData, "common">;
   locale: Locale;
 }
 
 export default function Header(
-  { user, showReportsLink = true, t, locale }: HeaderProps,
+  { user, showReportsLink = true, strings, locale }: HeaderProps,
 ) {
+  const { common } = strings;
+
   return (
     <header class="navbar bg-base-100 shadow-sm sticky top-0 z-50 px-4 md:px-6">
       <div class="flex-1">
@@ -32,7 +34,7 @@ export default function Header(
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
-          <span>{t("common.appName")}</span>
+          <span>{common.appName}</span>
         </a>
       </div>
       <div class="flex-none flex items-center gap-4">
@@ -58,7 +60,7 @@ export default function Header(
             <>
               {showReportsLink && (
                 <a href="/reports" class="btn btn-ghost btn-sm">
-                  {t("common.myReports")}
+                  {common.myReports}
                 </a>
               )}
               <div class="flex items-center gap-2">
@@ -73,13 +75,13 @@ export default function Header(
                 <span class="text-sm hidden md:inline">{user.name}</span>
               </div>
               <a href="/api/auth/logout" class="btn btn-outline btn-sm">
-                {t("common.logout")}
+                {common.logout}
               </a>
             </>
           )
           : (
             <a href="/api/auth/google" class="btn btn-primary btn-sm">
-              {t("common.login")}
+              {common.login}
             </a>
           )}
       </div>

@@ -3,7 +3,6 @@ import { HttpError } from "fresh";
 import { define } from "@/utils.ts";
 import { getReportByToken } from "@/lib/repository.ts";
 import type { Report } from "@/lib/types.ts";
-import type { SharePageStrings } from "@/lib/i18n/index.ts";
 import ReportView from "@/islands/ReportView.tsx";
 import Overview from "@/components/Overview.tsx";
 
@@ -15,28 +14,24 @@ export const handler = define.handlers({
       throw new HttpError(404, "Report not found");
     }
 
-    // Extract strings for the island (server-side pre-translation)
-    const translations = ctx.state.translations;
-    const strings: SharePageStrings = {
-      common: translations.common as SharePageStrings["common"],
-      reportView: translations.reportView as SharePageStrings["reportView"],
-    };
+    const { common, reportView } = ctx.state.translations;
 
     return {
       data: {
         report,
         locale: ctx.state.locale,
-        strings,
+        strings: { common, reportView },
       },
     };
   },
 });
 
-export default define.page<typeof handler>(function SharePage({ data, state }) {
+export default define.page<typeof handler>(function SharePage({ data }) {
   const report: Report = data.report;
   const reportData = report.data!; // Guaranteed by handler check
   const commentCount = reportData.comment_num ||
     Object.keys(reportData.comments).length;
+  const { common } = data.strings;
 
   return (
     <>
@@ -56,7 +51,7 @@ export default define.page<typeof handler>(function SharePage({ data, state }) {
           title={report.title}
           commentCount={commentCount}
           overview={reportData.overview}
-          t={state.t}
+          strings={{ common }}
         />
       </ReportView>
     </>

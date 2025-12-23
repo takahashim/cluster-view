@@ -1,7 +1,6 @@
 import { assertEquals, assertExists } from "@std/assert";
 import {
   createI18nState,
-  createTranslator,
   DEFAULT_LOCALE,
   detectLocale,
   detectLocaleFromHeader,
@@ -175,62 +174,6 @@ Deno.test("detectLocale", async (t) => {
 });
 
 // ============================================================
-// createTranslator tests
-// ============================================================
-
-Deno.test("createTranslator", async (t) => {
-  await t.step("returns translation for valid key (ja)", () => {
-    const t = createTranslator("ja");
-    const result = t("common.appName");
-    assertEquals(result, "Cluster View");
-  });
-
-  await t.step("returns translation for valid key (en)", () => {
-    const t = createTranslator("en");
-    const result = t("common.login");
-    assertEquals(result, "Sign in with Google");
-  });
-
-  await t.step("returns translation for nested key", () => {
-    const t = createTranslator("ja");
-    const result = t("home.features.visualization.title");
-    assertEquals(result, "インタラクティブな可視化");
-  });
-
-  await t.step("interpolates parameters", () => {
-    const t = createTranslator("ja");
-    const result = t("common.comments", { count: 100 });
-    assertEquals(result, "100 件の意見");
-  });
-
-  await t.step("interpolates multiple parameters", () => {
-    const t = createTranslator("ja");
-    const result = t("reportView.filter.active", { filtered: 50, total: 100 });
-    assertEquals(result, "フィルタ適用中: 50 / 100 件表示");
-  });
-
-  await t.step("keeps placeholder if parameter missing", () => {
-    const t = createTranslator("ja");
-    const result = t("common.comments", {}); // missing 'count'
-    assertEquals(result, "{count} 件の意見");
-  });
-
-  await t.step("returns key for missing translation", () => {
-    const t = createTranslator("ja");
-    const result = t("nonexistent.key");
-    assertEquals(result, "nonexistent.key");
-  });
-
-  await t.step("falls back to default locale for missing translation", () => {
-    // This test assumes both locales have the same keys
-    // If en is missing a key that ja has, it should fall back to ja
-    const t = createTranslator("en");
-    const result = t("common.appName");
-    assertEquals(result, "Cluster View");
-  });
-});
-
-// ============================================================
 // getTranslations tests
 // ============================================================
 
@@ -357,7 +300,6 @@ Deno.test("createI18nState - middleware core logic", async (t) => {
     const state = createI18nState(req);
 
     assertExists(state.locale);
-    assertExists(state.t);
     assertExists(state.translations);
   });
 
@@ -368,26 +310,6 @@ Deno.test("createI18nState - middleware core logic", async (t) => {
     const state = createI18nState(req);
 
     assertEquals(state.locale, "en");
-  });
-
-  await t.step("state.t is a working translate function", () => {
-    const req = new Request("http://example.com", {
-      headers: { "Accept-Language": "ja" },
-    });
-    const state = createI18nState(req);
-
-    const result = state.t("common.appName");
-    assertEquals(result, "Cluster View");
-  });
-
-  await t.step("state.t interpolates parameters correctly", () => {
-    const req = new Request("http://example.com", {
-      headers: { "Accept-Language": "ja" },
-    });
-    const state = createI18nState(req);
-
-    const result = state.t("common.comments", { count: 42 });
-    assertEquals(result, "42 件の意見");
   });
 
   await t.step("state.translations contains translation data", () => {
@@ -407,7 +329,7 @@ Deno.test("createI18nState - middleware core logic", async (t) => {
     const state = createI18nState(req);
 
     assertEquals(state.locale, "ja");
-    assertEquals(state.t("common.login"), "Googleでログイン");
+    assertEquals(state.translations.common.login, "Googleでログイン");
   });
 
   await t.step("English browser gets English translations", () => {
@@ -417,7 +339,7 @@ Deno.test("createI18nState - middleware core logic", async (t) => {
     const state = createI18nState(req);
 
     assertEquals(state.locale, "en");
-    assertEquals(state.t("common.login"), "Sign in with Google");
+    assertEquals(state.translations.common.login, "Sign in with Google");
   });
 
   await t.step("Cookie preference overrides browser language", () => {
@@ -430,7 +352,7 @@ Deno.test("createI18nState - middleware core logic", async (t) => {
     const state = createI18nState(req);
 
     assertEquals(state.locale, "en");
-    assertEquals(state.t("common.logout"), "Sign out");
+    assertEquals(state.translations.common.logout, "Sign out");
   });
 
   await t.step("state is consistent (all parts use same locale)", () => {
@@ -442,12 +364,8 @@ Deno.test("createI18nState - middleware core logic", async (t) => {
     // Verify locale
     assertEquals(state.locale, "en");
 
-    // Verify t function uses en
-    assertEquals(state.t("common.login"), "Sign in with Google");
-
     // Verify translations object is en
-    const common = state.translations.common as Record<string, string>;
-    assertEquals(common.login, "Sign in with Google");
+    assertEquals(state.translations.common.login, "Sign in with Google");
   });
 });
 

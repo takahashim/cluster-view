@@ -1,5 +1,5 @@
 import type { ChartType } from "@/lib/constants.ts";
-import type { SharePageStrings } from "@/lib/i18n/index.ts";
+import type { TranslationsData } from "@/lib/i18n/index.ts";
 
 interface ChartToolbarProps {
   chartType: ChartType;
@@ -8,7 +8,7 @@ interface ChartToolbarProps {
   activeFilterCount: number;
   onFilterClick: () => void;
   onFullscreenClick?: () => void;
-  strings: SharePageStrings;
+  strings: Pick<TranslationsData, "common" | "reportView">;
 }
 
 export default function ChartToolbar({

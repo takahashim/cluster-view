@@ -1,10 +1,10 @@
 import type { ComponentChildren } from "preact";
 import { useComputed, useSignal } from "@preact/signals";
 import type { Cluster, FilterState, HierarchicalResult } from "@/lib/types.ts";
-import type { Locale } from "@/lib/i18n/types.ts";
 import {
   interpolateTemplate,
-  type SharePageStrings,
+  type Locale,
+  type TranslationsData,
 } from "@/lib/i18n/index.ts";
 import {
   type ChartType,
@@ -22,10 +22,12 @@ import FilterPanel, {
 } from "./FilterPanel.tsx";
 import LanguageSwitcher from "./LanguageSwitcher.tsx";
 
+type ReportStrings = Pick<TranslationsData, "common" | "reportView">;
+
 interface ReportViewProps {
   data: HierarchicalResult;
   shareToken: string;
-  strings: SharePageStrings;
+  strings: ReportStrings;
   locale: Locale;
   children: ComponentChildren;
 }

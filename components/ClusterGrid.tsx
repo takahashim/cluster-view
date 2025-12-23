@@ -1,12 +1,12 @@
 import type { Cluster } from "@/lib/types.ts";
-import type { SharePageStrings } from "@/lib/i18n/index.ts";
+import type { TranslationsData } from "@/lib/i18n/index.ts";
 import { getClusterColor } from "@/lib/colors.ts";
 import ClusterCard from "./ClusterCard.tsx";
 
 interface ClusterGridProps {
   clusters: Cluster[];
   onClusterClick?: (clusterId: string) => void;
-  strings: SharePageStrings;
+  strings: Pick<TranslationsData, "common" | "reportView">;
 }
 
 export default function ClusterGrid(

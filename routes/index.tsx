@@ -2,45 +2,41 @@ import { Head } from "fresh/runtime";
 import { define } from "../utils.ts";
 import { getCurrentUser } from "@/lib/auth.ts";
 import type { User } from "@/lib/repository.ts";
-import type { HomePageStrings } from "@/lib/i18n/index.ts";
 import FileUploader from "../islands/FileUploader.tsx";
 import Header from "@/components/Header.tsx";
 
 export const handler = define.handlers({
   async GET(ctx) {
     const user = await getCurrentUser(ctx.req);
-    const translations = ctx.state.translations;
-    const strings: HomePageStrings = {
-      common: translations.common as HomePageStrings["common"],
-      uploader: translations.uploader as HomePageStrings["uploader"],
-    };
+    const { common, uploader, home } = ctx.state.translations;
     return {
       data: {
         user,
         locale: ctx.state.locale,
-        strings,
+        strings: { common, uploader, home },
       },
     };
   },
 });
 
-export default define.page<typeof handler>(function Home({ data, state }) {
+export default define.page<typeof handler>(function Home({ data }) {
   const user = data.user as User | null;
-  const { t, locale } = state;
+  const { locale } = data;
+  const { common, home } = data.strings;
 
   return (
     <div class="min-h-screen bg-base-200">
       <Head>
-        <title>{t("home.title")}</title>
-        <meta name="description" content={t("home.description")} />
+        <title>{home.title}</title>
+        <meta name="description" content={home.description} />
       </Head>
 
-      <Header user={user} t={t} locale={locale} />
+      <Header user={user} strings={{ common }} locale={locale} />
 
       <main class="max-w-3xl mx-auto p-6 md:p-10">
         <div class="text-center mb-12">
           <h1 class="text-4xl md:text-5xl font-bold text-base-content mb-4">
-            {t("common.appName")}
+            {common.appName}
           </h1>
           <p class="text-lg text-base-content/70">
             <a
@@ -49,9 +45,9 @@ export default define.page<typeof handler>(function Home({ data, state }) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              {t("home.kouchouAi")}
+              {home.kouchouAi}
             </a>
-            {t("home.subtitle")}
+            {home.subtitle}
           </p>
         </div>
 
@@ -76,10 +72,10 @@ export default define.page<typeof handler>(function Home({ data, state }) {
                 </svg>
               </div>
               <h3 class="card-title text-base">
-                {t("home.features.visualization.title")}
+                {home.features.visualization.title}
               </h3>
               <p class="text-base-content/60 text-sm">
-                {t("home.features.visualization.description")}
+                {home.features.visualization.description}
               </p>
             </div>
           </div>
@@ -102,10 +98,10 @@ export default define.page<typeof handler>(function Home({ data, state }) {
                 </svg>
               </div>
               <h3 class="card-title text-base">
-                {t("home.features.cluster.title")}
+                {home.features.cluster.title}
               </h3>
               <p class="text-base-content/60 text-sm">
-                {t("home.features.cluster.description")}
+                {home.features.cluster.description}
               </p>
             </div>
           </div>
@@ -127,10 +123,10 @@ export default define.page<typeof handler>(function Home({ data, state }) {
                 </svg>
               </div>
               <h3 class="card-title text-base">
-                {t("home.features.share.title")}
+                {home.features.share.title}
               </h3>
               <p class="text-base-content/60 text-sm">
-                {t("home.features.share.description")}
+                {home.features.share.description}
               </p>
             </div>
           </div>

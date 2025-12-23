@@ -1,11 +1,11 @@
 import type { Cluster } from "@/lib/types.ts";
-import type { SharePageStrings } from "@/lib/i18n/index.ts";
+import type { TranslationsData } from "@/lib/i18n/index.ts";
 
 interface ClusterBreadcrumbProps {
   clusters: Cluster[];
   selectedClusterId: string | null;
   onNavigate: (clusterId: string | null) => void;
-  strings: SharePageStrings;
+  strings: Pick<TranslationsData, "common" | "reportView">;
 }
 
 export default function ClusterBreadcrumb({

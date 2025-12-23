@@ -1,11 +1,11 @@
 import { useSignal } from "@preact/signals";
 import { useCallback } from "preact/hooks";
 import type { User } from "@/lib/repository.ts";
-import type { HomePageStrings } from "@/lib/i18n/index.ts";
+import type { TranslationsData } from "@/lib/i18n/index.ts";
 
 interface FileUploaderProps {
   user: User | null;
-  strings: HomePageStrings;
+  strings: Pick<TranslationsData, "common" | "uploader">;
 }
 
 export default function FileUploader(

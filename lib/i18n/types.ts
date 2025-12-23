@@ -2,25 +2,14 @@
  * I18N type definitions
  */
 
-import type { SUPPORTED_LOCALES } from "./config.ts";
+import type { Locale } from "./config.ts";
+import type { TranslationsData } from "./derived-types.ts";
 
-/** Supported locale type */
-export type Locale = (typeof SUPPORTED_LOCALES)[number];
-
-/** Nested translations structure */
-export interface Translations {
-  [key: string]: string | Translations;
-}
-
-/** Translation function type */
-export type TranslateFunction = (
-  key: string,
-  params?: Record<string, string | number>,
-) => string;
+// Re-export Locale from config for convenience
+export type { Locale } from "./config.ts";
 
 /** I18N state for Fresh context */
 export interface I18nState {
   locale: Locale;
-  t: TranslateFunction;
-  translations: Translations;
+  translations: TranslationsData;
 }

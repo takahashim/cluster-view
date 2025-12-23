@@ -2,7 +2,7 @@ import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import type { Argument, Cluster, FilterState } from "@/lib/types.ts";
 import {
   interpolateTemplate,
-  type SharePageStrings,
+  type TranslationsData,
 } from "@/lib/i18n/index.ts";
 import { DEFAULT_MAX_DENSITY, DEFAULT_MIN_VALUE } from "@/lib/constants.ts";
 
@@ -35,7 +35,7 @@ interface FilterPanelProps {
   onClose: () => void;
   filterState: FilterState;
   onFilterChange: (state: FilterState) => void;
-  strings: SharePageStrings;
+  strings: Pick<TranslationsData, "common" | "reportView">;
 }
 
 export default function FilterPanel({
