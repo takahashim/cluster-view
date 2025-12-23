@@ -75,3 +75,15 @@ export type AppI18nState = I18nStateOf<typeof i18n>;
 export function createI18nState(request: Request): AppI18nState {
   return i18n.createState(request) as AppI18nState;
 }
+
+// =============================================================================
+// Fresh Middleware
+// =============================================================================
+
+import { define } from "@/utils.ts";
+
+/** Fresh middleware that sets up i18n state for all routes */
+export const i18nMiddleware = define.middleware(async (ctx) => {
+  Object.assign(ctx.state, createI18nState(ctx.req));
+  return await ctx.next();
+});
