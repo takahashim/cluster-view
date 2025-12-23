@@ -1,0 +1,96 @@
+{
+  "common": {
+    "appName": "Cluster View",
+    "login": "Googleでログイン",
+    "logout": "ログアウト",
+    "myReports": "マイレポート",
+    "open": "開く",
+    "delete": "削除",
+    "cancel": "キャンセル",
+    "apply": "適用",
+    "reset": "リセット",
+    "clear": "クリア",
+    "close": "閉じる",
+    "comments": "{count} 件の意見",
+    "items": "{count}件"
+  },
+  "home": {
+    "title": "Cluster View - レポートビューア",
+    "description": "hierarchical_result.jsonをアップロードして可視化",
+    "subtitle": "のhierarchical_result.json をアップロードして、分析結果を可視化・共有できます",
+    "kouchouAi": "広聴AI",
+    "features": {
+      "visualization": {
+        "title": "インタラクティブな可視化",
+        "description": "スキャッタープロットで意見の分布を確認"
+      },
+      "cluster": {
+        "title": "クラスタ別の閲覧",
+        "description": "階層的なクラスタ構造をドリルダウン"
+      },
+      "share": {
+        "title": "簡単シェア",
+        "description": "URLを共有して第三者と結果を共有"
+      }
+    }
+  },
+  "uploader": {
+    "loginRequired": "ログインが必要です",
+    "loginPrompt": "レポートを作成するにはログインしてください",
+    "dropzone": "hierarchical_result.json をドラッグ&ドロップ",
+    "or": "または",
+    "selectFile": "ファイルを選択",
+    "uploading": "アップロード中...",
+    "errors": {
+      "jsonRequired": "JSONファイルを選択してください",
+      "parseFailed": "JSONのパースに失敗しました",
+      "loginRequired": "ログインが必要です",
+      "uploadFailed": "アップロードに失敗しました",
+      "generic": "エラーが発生しました"
+    }
+  },
+  "reports": {
+    "pageTitle": "マイレポート - Cluster View",
+    "title": "マイレポート",
+    "empty": "レポートがありません",
+    "createNew": "新しいレポートを作成",
+    "confirmDelete": "このレポートを削除しますか?",
+    "deleteFailed": "削除に失敗しました"
+  },
+  "reportView": {
+    "copyUrl": "URLをコピー",
+    "copied": "コピーしました",
+    "distribution": "意見の分布",
+    "clusterList": "クラスタ一覧",
+    "backToList": "一覧に戻る",
+    "exitFullscreen": "全画面を終了",
+    "fullscreen": "全画面表示",
+    "breadcrumb": {
+      "currentGroup": "表示中の意見グループ",
+      "all": "全て"
+    },
+    "chartTypes": {
+      "all": "全体",
+      "density": "密度",
+      "tree": "ツリー"
+    },
+    "filter": {
+      "title": "フィルタ設定",
+      "button": "フィルタ設定",
+      "active": "フィルタ適用中: {filtered} / {total} 件表示",
+      "textSearch": "テキスト検索",
+      "textPlaceholder": "意見の内容で検索...",
+      "density": "密度フィルタ",
+      "densityRank": "密度ランク上位 {percent}% を表示",
+      "minCount": "最小件数: {count}件以上",
+      "categoryFilter": "カテゴリ属性フィルタ",
+      "numericFilter": "数値範囲フィルタ",
+      "enableFilter": "フィルタを有効化",
+      "dataRange": "データ範囲: {min} 〜 {max}",
+      "minValue": "最小値",
+      "maxValue": "最大値",
+      "includeEmpty": "空の値を含める",
+      "noFilterData": "このデータには密度情報や属性データがありません。テキスト検索のみ利用可能です。"
+    }
+  }
+}

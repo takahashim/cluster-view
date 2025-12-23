@@ -1,0 +1,96 @@
+{
+  "common": {
+    "appName": "Cluster View",
+    "login": "Sign in with Google",
+    "logout": "Sign out",
+    "myReports": "My Reports",
+    "open": "Open",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "apply": "Apply",
+    "reset": "Reset",
+    "clear": "Clear",
+    "close": "Close",
+    "comments": "{count} comments",
+    "items": "{count} items"
+  },
+  "home": {
+    "title": "Cluster View - Report Viewer",
+    "description": "Upload and visualize hierarchical_result.json",
+    "subtitle": " - upload hierarchical_result.json to visualize and share analysis results",
+    "kouchouAi": "Kouchou-AI",
+    "features": {
+      "visualization": {
+        "title": "Interactive Visualization",
+        "description": "View opinion distribution with scatter plots"
+      },
+      "cluster": {
+        "title": "Cluster-based Browsing",
+        "description": "Drill down hierarchical cluster structures"
+      },
+      "share": {
+        "title": "Easy Sharing",
+        "description": "Share results with others via URL"
+      }
+    }
+  },
+  "uploader": {
+    "loginRequired": "Login Required",
+    "loginPrompt": "Please sign in to create reports",
+    "dropzone": "Drag & drop hierarchical_result.json",
+    "or": "or",
+    "selectFile": "Select File",
+    "uploading": "Uploading...",
+    "errors": {
+      "jsonRequired": "Please select a JSON file",
+      "parseFailed": "Failed to parse JSON",
+      "loginRequired": "Login required",
+      "uploadFailed": "Upload failed",
+      "generic": "An error occurred"
+    }
+  },
+  "reports": {
+    "pageTitle": "My Reports - Cluster View",
+    "title": "My Reports",
+    "empty": "No reports yet",
+    "createNew": "Create new report",
+    "confirmDelete": "Are you sure you want to delete this report?",
+    "deleteFailed": "Failed to delete"
+  },
+  "reportView": {
+    "copyUrl": "Copy URL",
+    "copied": "Copied!",
+    "distribution": "Opinion Distribution",
+    "clusterList": "Cluster List",
+    "backToList": "Back to list",
+    "exitFullscreen": "Exit fullscreen",
+    "fullscreen": "Fullscreen",
+    "breadcrumb": {
+      "currentGroup": "Current opinion group",
+      "all": "All"
+    },
+    "chartTypes": {
+      "all": "All",
+      "density": "Density",
+      "tree": "Tree"
+    },
+    "filter": {
+      "title": "Filter Settings",
+      "button": "Filter Settings",
+      "active": "Filter active: {filtered} / {total} shown",
+      "textSearch": "Text Search",
+      "textPlaceholder": "Search in comments...",
+      "density": "Density Filter",
+      "densityRank": "Show top {percent}% by density rank",
+      "minCount": "Minimum count: {count} or more",
+      "categoryFilter": "Category Attribute Filter",
+      "numericFilter": "Numeric Range Filter",
+      "enableFilter": "Enable filter",
+      "dataRange": "Data range: {min} - {max}",
+      "minValue": "Min",
+      "maxValue": "Max",
+      "includeEmpty": "Include empty values",
+      "noFilterData": "This data has no density or attribute data. Only text search is available."
+    }
+  }
+}

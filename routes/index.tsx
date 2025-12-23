@@ -8,29 +8,33 @@ import Header from "@/components/Header.tsx";
 export const handler = define.handlers({
   async GET(ctx) {
     const user = await getCurrentUser(ctx.req);
-    return { data: { user } };
+    return {
+      data: {
+        user,
+        locale: ctx.state.locale,
+        translations: ctx.state.translations,
+      },
+    };
   },
 });
 
-export default define.page<typeof handler>(function Home({ data }) {
+export default define.page<typeof handler>(function Home({ data, state }) {
   const user = data.user as User | null;
+  const { t, locale } = state;
 
   return (
     <div class="min-h-screen bg-base-200">
       <Head>
-        <title>Cluster View - レポートビューア</title>
-        <meta
-          name="description"
-          content="hierarchical_result.jsonをアップロードして可視化"
-        />
+        <title>{t("home.title")}</title>
+        <meta name="description" content={t("home.description")} />
       </Head>
 
-      <Header user={user} />
+      <Header user={user} t={t} locale={locale} />
 
       <main class="max-w-3xl mx-auto p-6 md:p-10">
         <div class="text-center mb-12">
           <h1 class="text-4xl md:text-5xl font-bold text-base-content mb-4">
-            Cluster View
+            {t("common.appName")}
           </h1>
           <p class="text-lg text-base-content/70">
             <a
@@ -39,14 +43,17 @@ export default define.page<typeof handler>(function Home({ data }) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              広聴AI
-            </a>のhierarchical_result.json をアップロードして、
-            <br />
-            分析結果を可視化・共有できます
+              {t("home.kouchouAi")}
+            </a>
+            {t("home.subtitle")}
           </p>
         </div>
 
-        <FileUploader user={user} />
+        <FileUploader
+          user={user}
+          translations={data.translations}
+          locale={data.locale}
+        />
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
           <div class="card bg-base-100 shadow-sm">
@@ -64,10 +71,10 @@ export default define.page<typeof handler>(function Home({ data }) {
                 </svg>
               </div>
               <h3 class="card-title text-base">
-                インタラクティブな可視化
+                {t("home.features.visualization.title")}
               </h3>
               <p class="text-base-content/60 text-sm">
-                スキャッタープロットで意見の分布を確認
+                {t("home.features.visualization.description")}
               </p>
             </div>
           </div>
@@ -90,10 +97,10 @@ export default define.page<typeof handler>(function Home({ data }) {
                 </svg>
               </div>
               <h3 class="card-title text-base">
-                クラスタ別の閲覧
+                {t("home.features.cluster.title")}
               </h3>
               <p class="text-base-content/60 text-sm">
-                階層的なクラスタ構造をドリルダウン
+                {t("home.features.cluster.description")}
               </p>
             </div>
           </div>
@@ -115,10 +122,10 @@ export default define.page<typeof handler>(function Home({ data }) {
                 </svg>
               </div>
               <h3 class="card-title text-base">
-                簡単シェア
+                {t("home.features.share.title")}
               </h3>
               <p class="text-base-content/60 text-sm">
-                URLを共有して第三者と結果を共有
+                {t("home.features.share.description")}
               </p>
             </div>
           </div>

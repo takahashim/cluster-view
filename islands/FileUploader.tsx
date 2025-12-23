@@ -1,19 +1,26 @@
 import { useSignal } from "@preact/signals";
 import { useCallback } from "preact/hooks";
 import type { User } from "@/lib/repository.ts";
+import { useTranslation } from "@/lib/i18n/hooks.ts";
+import type { Locale, Translations } from "@/lib/i18n/types.ts";
 
 interface FileUploaderProps {
   user: User | null;
+  translations: Translations;
+  locale: Locale;
 }
 
-export default function FileUploader({ user }: FileUploaderProps) {
+export default function FileUploader(
+  { user, translations }: FileUploaderProps,
+) {
+  const t = useTranslation(translations);
   const isDragging = useSignal(false);
   const isUploading = useSignal(false);
   const errorMessage = useSignal<string | null>(null);
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.endsWith(".json")) {
-      errorMessage.value = "JSONファイルを選択してください";
+      errorMessage.value = t("uploader.errors.jsonRequired");
       return;
     }
 
@@ -27,7 +34,7 @@ export default function FileUploader({ user }: FileUploaderProps) {
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error("JSONのパースに失敗しました");
+        throw new Error(t("uploader.errors.parseFailed"));
       }
 
       const response = await fetch("/api/reports", {
@@ -38,10 +45,10 @@ export default function FileUploader({ user }: FileUploaderProps) {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error("ログインが必要です");
+          throw new Error(t("uploader.errors.loginRequired"));
         }
         const errorData = await response.json();
-        throw new Error(errorData.error || "アップロードに失敗しました");
+        throw new Error(errorData.error || t("uploader.errors.uploadFailed"));
       }
 
       const result = await response.json();
@@ -51,11 +58,11 @@ export default function FileUploader({ user }: FileUploaderProps) {
     } catch (error) {
       errorMessage.value = error instanceof Error
         ? error.message
-        : "エラーが発生しました";
+        : t("uploader.errors.generic");
     } finally {
       isUploading.value = false;
     }
-  }, []);
+  }, [t]);
 
   const handleDrop = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -99,13 +106,13 @@ export default function FileUploader({ user }: FileUploaderProps) {
             <line x1="23" y1="11" x2="17" y2="11" />
           </svg>
           <p class="font-medium text-base-content mb-2">
-            ログインが必要です
+            {t("uploader.loginRequired")}
           </p>
           <p class="text-base-content/60 text-sm mb-4">
-            レポートを作成するにはログインしてください
+            {t("uploader.loginPrompt")}
           </p>
           <a href="/api/auth/google" class="btn btn-primary">
-            Googleでログイン
+            {t("common.login")}
           </a>
         </div>
       </div>
@@ -135,7 +142,7 @@ export default function FileUploader({ user }: FileUploaderProps) {
             <div class="flex flex-col items-center gap-4">
               <span class="loading loading-spinner loading-lg text-primary">
               </span>
-              <p class="text-base-content">アップロード中...</p>
+              <p class="text-base-content">{t("uploader.uploading")}</p>
             </div>
           )
           : (
@@ -153,11 +160,13 @@ export default function FileUploader({ user }: FileUploaderProps) {
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
               <p class="font-medium text-base-content mb-2">
-                hierarchical_result.json をドラッグ&ドロップ
+                {t("uploader.dropzone")}
               </p>
-              <p class="text-base-content/60 text-sm mb-4">または</p>
+              <p class="text-base-content/60 text-sm mb-4">
+                {t("uploader.or")}
+              </p>
               <label class="btn btn-primary">
-                ファイルを選択
+                {t("uploader.selectFile")}
                 <input
                   type="file"
                   accept=".json"

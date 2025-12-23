@@ -1,4 +1,6 @@
 import type { ChartType } from "@/lib/constants.ts";
+import { useTranslation } from "@/lib/i18n/hooks.ts";
+import type { Translations } from "@/lib/i18n/types.ts";
 
 interface ChartToolbarProps {
   chartType: ChartType;
@@ -7,6 +9,7 @@ interface ChartToolbarProps {
   activeFilterCount: number;
   onFilterClick: () => void;
   onFullscreenClick?: () => void;
+  translations: Translations;
 }
 
 export default function ChartToolbar({
@@ -16,7 +19,10 @@ export default function ChartToolbar({
   activeFilterCount,
   onFilterClick,
   onFullscreenClick,
+  translations,
 }: ChartToolbarProps) {
+  const t = useTranslation(translations);
+
   return (
     <div class="flex items-center gap-2">
       <div class="join">
@@ -27,7 +33,7 @@ export default function ChartToolbar({
           }`}
           onClick={() => onChartTypeChange("scatterAll")}
         >
-          全体
+          {t("reportView.chartTypes.all")}
         </button>
         <button
           type="button"
@@ -36,7 +42,7 @@ export default function ChartToolbar({
           }`}
           onClick={() => onChartTypeChange("scatterDensity")}
         >
-          密度
+          {t("reportView.chartTypes.density")}
         </button>
         <button
           type="button"
@@ -45,7 +51,7 @@ export default function ChartToolbar({
           }`}
           onClick={() => onChartTypeChange("treemap")}
         >
-          ツリー
+          {t("reportView.chartTypes.tree")}
         </button>
       </div>
       {/* フィルタボタン */}
@@ -53,7 +59,7 @@ export default function ChartToolbar({
         type="button"
         class={`btn btn-sm ${isFiltering ? "btn-secondary" : "btn-ghost"}`}
         onClick={onFilterClick}
-        title="フィルタ設定"
+        title={t("reportView.filter.button")}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -77,7 +83,7 @@ export default function ChartToolbar({
           type="button"
           class="btn btn-sm btn-ghost"
           onClick={onFullscreenClick}
-          title="全画面表示"
+          title={t("reportView.fullscreen")}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

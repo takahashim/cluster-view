@@ -1,8 +1,8 @@
 import { define } from "../utils.ts";
 
-export default define.page(function App({ Component }) {
+export default define.page(function App({ Component, state }) {
   return (
-    <html lang="ja" data-theme="autumn">
+    <html lang={state.locale} data-theme="autumn">
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />

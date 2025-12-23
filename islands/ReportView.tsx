@@ -1,5 +1,7 @@
 import { useComputed, useSignal } from "@preact/signals";
 import type { Cluster, FilterState, HierarchicalResult } from "@/lib/types.ts";
+import { useTranslation } from "@/lib/i18n/hooks.ts";
+import type { Locale, Translations } from "@/lib/i18n/types.ts";
 import {
   type ChartType,
   DEFAULT_MAX_DENSITY,
@@ -15,16 +17,20 @@ import FilterPanel, {
   applyFilters,
   createDefaultFilterState,
 } from "./FilterPanel.tsx";
+import LanguageSwitcher from "./LanguageSwitcher.tsx";
 
 interface ReportViewProps {
   data: HierarchicalResult;
   title: string;
   shareToken: string;
+  translations: Translations;
+  locale: Locale;
 }
 
 export default function ReportView(
-  { data, title, shareToken }: ReportViewProps,
+  { data, title, shareToken, translations, locale }: ReportViewProps,
 ) {
+  const t = useTranslation(translations);
   const selectedClusterId = useSignal<string | null>(null);
   const copied = useSignal(false);
   const chartType = useSignal<ChartType>("scatterAll");
@@ -185,10 +191,11 @@ export default function ReportView(
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
-            <span>Cluster View</span>
+            <span>{t("common.appName")}</span>
           </a>
         </div>
-        <div class="flex-none">
+        <div class="flex-none flex items-center gap-2">
+          <LanguageSwitcher currentLocale={locale} />
           <button
             type="button"
             class="btn btn-primary btn-sm gap-2"
@@ -209,7 +216,7 @@ export default function ReportView(
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  コピーしました
+                  {t("reportView.copied")}
                 </>
               )
               : (
@@ -228,7 +235,7 @@ export default function ReportView(
                     <polyline points="16 6 12 2 8 6" />
                     <line x1="12" y1="2" x2="12" y2="15" />
                   </svg>
-                  URLをコピー
+                  {t("reportView.copyUrl")}
                 </>
               )}
           </button>
@@ -240,12 +247,13 @@ export default function ReportView(
           title={title}
           commentCount={commentCount}
           overview={data.overview}
+          translations={translations}
         />
 
         <section class="card bg-base-100 shadow-sm mb-6">
           <div class="card-body">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <h2 class="card-title text-lg">意見の分布</h2>
+              <h2 class="card-title text-lg">{t("reportView.distribution")}</h2>
               <ChartToolbar
                 chartType={chartType.value}
                 onChartTypeChange={handleChartTypeChange}
@@ -257,6 +265,7 @@ export default function ReportView(
                 onFullscreenClick={() => {
                   isFullscreen.value = true;
                 }}
+                translations={translations}
               />
             </div>
 
@@ -274,8 +283,10 @@ export default function ReportView(
                   <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                 </svg>
                 <span class="text-sm">
-                  フィルタ適用中: {filteredArgumentIds.value.size} /{" "}
-                  {data.arguments.length} 件表示
+                  {t("reportView.filter.active", {
+                    filtered: filteredArgumentIds.value.size,
+                    total: data.arguments.length,
+                  })}
                 </span>
                 <button
                   type="button"
@@ -284,7 +295,7 @@ export default function ReportView(
                     filterState.value = createDefaultFilterState();
                   }}
                 >
-                  クリア
+                  {t("common.clear")}
                 </button>
               </div>
             )}
@@ -328,6 +339,7 @@ export default function ReportView(
           onNavigate={(id) => {
             selectedClusterId.value = id;
           }}
+          translations={translations}
         />
 
         {selectedCluster && (
@@ -349,7 +361,7 @@ export default function ReportView(
               >
                 <polyline points="15 18 9 12 15 6" />
               </svg>
-              一覧に戻る
+              {t("reportView.backToList")}
             </button>
             <span class="text-lg font-semibold">{selectedCluster.label}</span>
           </div>
@@ -359,6 +371,7 @@ export default function ReportView(
           <ClusterGrid
             clusters={displayClusters}
             onClusterClick={handleClusterClick}
+            translations={translations}
           />
         )}
       </main>
@@ -375,7 +388,7 @@ export default function ReportView(
                 onClick={() => {
                   isFullscreen.value = false;
                 }}
-                title="全画面を終了"
+                title={t("reportView.exitFullscreen")}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -404,6 +417,7 @@ export default function ReportView(
                   onFilterClick={() => {
                     isFilterPanelOpen.value = true;
                   }}
+                  translations={translations}
                 />
               </div>
 
@@ -459,6 +473,7 @@ export default function ReportView(
         }}
         filterState={filterState.value}
         onFilterChange={handleFilterChange}
+        translations={translations}
       />
     </div>
   );

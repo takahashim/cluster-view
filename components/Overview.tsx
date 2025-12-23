@@ -1,12 +1,18 @@
+import { useTranslation } from "@/lib/i18n/hooks.ts";
+import type { Translations } from "@/lib/i18n/types.ts";
+
 interface OverviewProps {
   title: string;
   commentCount: number;
   overview: string;
+  translations: Translations;
 }
 
 export default function Overview(
-  { title, commentCount, overview }: OverviewProps,
+  { title, commentCount, overview, translations }: OverviewProps,
 ) {
+  const t = useTranslation(translations);
+
   return (
     <div class="card bg-base-100 shadow-sm mb-6">
       <div class="card-body">
@@ -22,7 +28,9 @@ export default function Overview(
           >
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          <span>{commentCount.toLocaleString()} 件の意見</span>
+          <span>
+            {t("common.comments", { count: commentCount.toLocaleString() })}
+          </span>
         </div>
         <p class="mt-4 leading-relaxed">{overview}</p>
       </div>

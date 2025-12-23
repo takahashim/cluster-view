@@ -1,16 +1,22 @@
 import type { Cluster } from "@/lib/types.ts";
+import { useTranslation } from "@/lib/i18n/hooks.ts";
+import type { Translations } from "@/lib/i18n/types.ts";
 
 interface ClusterBreadcrumbProps {
   clusters: Cluster[];
   selectedClusterId: string | null;
   onNavigate: (clusterId: string | null) => void;
+  translations: Translations;
 }
 
 export default function ClusterBreadcrumb({
   clusters,
   selectedClusterId,
   onNavigate,
+  translations,
 }: ClusterBreadcrumbProps) {
+  const t = useTranslation(translations);
+
   if (!selectedClusterId) return null;
 
   // Build the path from root to selected cluster
@@ -38,7 +44,7 @@ export default function ClusterBreadcrumb({
   return (
     <div class="mb-4 hidden md:block">
       <p class="text-sm font-semibold text-base-content/70 mb-1">
-        表示中の意見グループ
+        {t("reportView.breadcrumb.currentGroup")}
       </p>
       <div class="breadcrumbs text-sm">
         <ul>
@@ -48,7 +54,7 @@ export default function ClusterBreadcrumb({
               class="link link-hover"
               onClick={() => onNavigate(null)}
             >
-              全て
+              {t("reportView.breadcrumb.all")}
             </button>
           </li>
           {path.map((cluster, index) => (

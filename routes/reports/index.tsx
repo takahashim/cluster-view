@@ -35,25 +35,35 @@ export const handler = define.handlers({
           shareToken: r.shareToken,
           createdAt: r.createdAt,
         })),
+        locale: ctx.state.locale,
+        translations: ctx.state.translations,
       },
     };
   },
 });
 
-export default define.page<typeof handler>(function ReportsPage({ data }) {
+export default define.page<typeof handler>(function ReportsPage({
+  data,
+  state,
+}) {
   const { user, reports } = data as { user: User; reports: ReportSummary[] };
+  const { t, locale } = state;
 
   return (
     <>
       <Head>
-        <title>マイレポート - Cluster View</title>
+        <title>{t("reports.pageTitle")}</title>
       </Head>
       <div class="min-h-screen bg-base-200">
-        <Header user={user} showReportsLink={false} />
+        <Header user={user} showReportsLink={false} t={t} locale={locale} />
 
         <main class="max-w-4xl mx-auto p-4 md:p-6">
-          <h1 class="text-2xl font-bold mb-6">マイレポート</h1>
-          <ReportsList initialReports={reports} />
+          <h1 class="text-2xl font-bold mb-6">{t("reports.title")}</h1>
+          <ReportsList
+            initialReports={reports}
+            translations={data.translations}
+            locale={data.locale}
+          />
         </main>
       </div>
     </>

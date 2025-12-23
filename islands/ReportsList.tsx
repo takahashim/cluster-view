@@ -1,4 +1,6 @@
 import { useSignal } from "@preact/signals";
+import { useTranslation } from "@/lib/i18n/hooks.ts";
+import type { Locale, Translations } from "@/lib/i18n/types.ts";
 
 interface ReportSummary {
   id: string;
@@ -9,14 +11,19 @@ interface ReportSummary {
 
 interface ReportsListProps {
   initialReports: ReportSummary[];
+  translations: Translations;
+  locale: Locale;
 }
 
-export default function ReportsList({ initialReports }: ReportsListProps) {
+export default function ReportsList(
+  { initialReports, translations, locale }: ReportsListProps,
+) {
+  const t = useTranslation(translations);
   const reports = useSignal(initialReports);
   const deletingId = useSignal<string | null>(null);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("このレポートを削除しますか?")) return;
+    if (!confirm(t("reports.confirmDelete"))) return;
 
     deletingId.value = id;
 
@@ -28,23 +35,32 @@ export default function ReportsList({ initialReports }: ReportsListProps) {
       if (response.ok) {
         reports.value = reports.value.filter((r) => r.id !== id);
       } else {
-        alert("削除に失敗しました");
+        alert(t("reports.deleteFailed"));
       }
     } catch (error) {
       console.error("Delete failed:", error);
-      alert("削除に失敗しました");
+      alert(t("reports.deleteFailed"));
     } finally {
       deletingId.value = null;
     }
+  };
+
+  // Date format options based on locale
+  const dateFormatOptions: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   };
 
   if (reports.value.length === 0) {
     return (
       <div class="card bg-base-100 shadow-sm">
         <div class="card-body text-center text-base-content/60">
-          <p>レポートがありません</p>
+          <p>{t("reports.empty")}</p>
           <a href="/" class="btn btn-primary btn-sm mt-4">
-            新しいレポートを作成
+            {t("reports.createNew")}
           </a>
         </div>
       </div>
@@ -59,13 +75,10 @@ export default function ReportsList({ initialReports }: ReportsListProps) {
             <div class="min-w-0 flex-1">
               <h3 class="font-semibold truncate">{report.title}</h3>
               <p class="text-sm text-base-content/60">
-                {new Date(report.createdAt).toLocaleDateString("ja-JP", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {new Date(report.createdAt).toLocaleDateString(
+                  locale === "ja" ? "ja-JP" : "en-US",
+                  dateFormatOptions,
+                )}
               </p>
             </div>
             <div class="flex gap-2 flex-shrink-0">
@@ -73,7 +86,7 @@ export default function ReportsList({ initialReports }: ReportsListProps) {
                 href={`/share/${report.shareToken}`}
                 class="btn btn-primary btn-sm"
               >
-                開く
+                {t("common.open")}
               </a>
               <button
                 type="button"
@@ -84,7 +97,7 @@ export default function ReportsList({ initialReports }: ReportsListProps) {
                   handleDelete(report.id)}
                 disabled={deletingId.value !== null}
               >
-                削除
+                {t("common.delete")}
               </button>
             </div>
           </div>

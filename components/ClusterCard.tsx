@@ -1,14 +1,18 @@
 import type { Cluster } from "@/lib/types.ts";
+import { useTranslation } from "@/lib/i18n/hooks.ts";
+import type { Translations } from "@/lib/i18n/types.ts";
 
 interface ClusterCardProps {
   cluster: Cluster;
   color: string;
   onClick?: () => void;
+  translations: Translations;
 }
 
 export default function ClusterCard(
-  { cluster, color, onClick }: ClusterCardProps,
+  { cluster, color, onClick, translations }: ClusterCardProps,
 ) {
+  const t = useTranslation(translations);
   return (
     <div
       class="card bg-base-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-l-4"
@@ -29,7 +33,7 @@ export default function ClusterCard(
             class="px-2 py-1 text-xs font-medium text-white rounded-full shrink-0"
             style={{ backgroundColor: color }}
           >
-            {cluster.value}件
+            {t("common.items", { count: cluster.value })}
           </span>
         </div>
         <p class="text-sm text-base-content/70 line-clamp-3">

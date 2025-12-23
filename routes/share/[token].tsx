@@ -13,12 +13,18 @@ export const handler = define.handlers({
       throw new HttpError(404, "Report not found");
     }
 
-    return { data: report };
+    return {
+      data: {
+        report,
+        locale: ctx.state.locale,
+        translations: ctx.state.translations,
+      },
+    };
   },
 });
 
 export default define.page<typeof handler>(function SharePage({ data }) {
-  const report: Report = data;
+  const report: Report = data.report;
   const reportData = report.data!; // Guaranteed by handler check
 
   return (
@@ -33,6 +39,8 @@ export default define.page<typeof handler>(function SharePage({ data }) {
         data={reportData}
         title={report.title}
         shareToken={report.shareToken}
+        translations={data.translations}
+        locale={data.locale}
       />
     </>
   );
