@@ -1,18 +1,15 @@
-import { useTranslation } from "@/lib/i18n/hooks.ts";
-import type { Translations } from "@/lib/i18n/types.ts";
+import type { TranslateFunction } from "@/lib/i18n/types.ts";
 
 interface OverviewProps {
   title: string;
   commentCount: number;
   overview: string;
-  translations: Translations;
+  t: TranslateFunction;
 }
 
 export default function Overview(
-  { title, commentCount, overview, translations }: OverviewProps,
+  { title, commentCount, overview, t }: OverviewProps,
 ) {
-  const t = useTranslation(translations);
-
   return (
     <div class="card bg-base-100 shadow-sm mb-6">
       <div class="card-body">

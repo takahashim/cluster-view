@@ -1,26 +1,23 @@
 import { useSignal } from "@preact/signals";
 import { useCallback } from "preact/hooks";
 import type { User } from "@/lib/repository.ts";
-import { useTranslation } from "@/lib/i18n/hooks.ts";
-import type { Locale, Translations } from "@/lib/i18n/types.ts";
+import type { HomePageStrings } from "@/lib/i18n/index.ts";
 
 interface FileUploaderProps {
   user: User | null;
-  translations: Translations;
-  locale: Locale;
+  strings: HomePageStrings;
 }
 
 export default function FileUploader(
-  { user, translations }: FileUploaderProps,
+  { user, strings }: FileUploaderProps,
 ) {
-  const t = useTranslation(translations);
   const isDragging = useSignal(false);
   const isUploading = useSignal(false);
   const errorMessage = useSignal<string | null>(null);
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.endsWith(".json")) {
-      errorMessage.value = t("uploader.errors.jsonRequired");
+      errorMessage.value = strings.uploader.errors.jsonRequired;
       return;
     }
 
@@ -34,7 +31,7 @@ export default function FileUploader(
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error(t("uploader.errors.parseFailed"));
+        throw new Error(strings.uploader.errors.parseFailed);
       }
 
       const response = await fetch("/api/reports", {
@@ -45,10 +42,12 @@ export default function FileUploader(
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error(t("uploader.errors.loginRequired"));
+          throw new Error(strings.uploader.errors.loginRequired);
         }
         const errorData = await response.json();
-        throw new Error(errorData.error || t("uploader.errors.uploadFailed"));
+        throw new Error(
+          errorData.error || strings.uploader.errors.uploadFailed,
+        );
       }
 
       const result = await response.json();
@@ -58,11 +57,11 @@ export default function FileUploader(
     } catch (error) {
       errorMessage.value = error instanceof Error
         ? error.message
-        : t("uploader.errors.generic");
+        : strings.uploader.errors.generic;
     } finally {
       isUploading.value = false;
     }
-  }, [t]);
+  }, [strings]);
 
   const handleDrop = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -106,13 +105,13 @@ export default function FileUploader(
             <line x1="23" y1="11" x2="17" y2="11" />
           </svg>
           <p class="font-medium text-base-content mb-2">
-            {t("uploader.loginRequired")}
+            {strings.uploader.loginRequired}
           </p>
           <p class="text-base-content/60 text-sm mb-4">
-            {t("uploader.loginPrompt")}
+            {strings.uploader.loginPrompt}
           </p>
           <a href="/api/auth/google" class="btn btn-primary">
-            {t("common.login")}
+            {strings.common.login}
           </a>
         </div>
       </div>
@@ -142,7 +141,7 @@ export default function FileUploader(
             <div class="flex flex-col items-center gap-4">
               <span class="loading loading-spinner loading-lg text-primary">
               </span>
-              <p class="text-base-content">{t("uploader.uploading")}</p>
+              <p class="text-base-content">{strings.uploader.uploading}</p>
             </div>
           )
           : (
@@ -160,13 +159,13 @@ export default function FileUploader(
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
               <p class="font-medium text-base-content mb-2">
-                {t("uploader.dropzone")}
+                {strings.uploader.dropzone}
               </p>
               <p class="text-base-content/60 text-sm mb-4">
-                {t("uploader.or")}
+                {strings.uploader.or}
               </p>
               <label class="btn btn-primary">
-                {t("uploader.selectFile")}
+                {strings.uploader.selectFile}
                 <input
                   type="file"
                   accept=".json"

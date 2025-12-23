@@ -2,6 +2,7 @@ import { Head } from "fresh/runtime";
 import { define } from "@/utils.ts";
 import { getCurrentUser } from "@/lib/auth.ts";
 import { getReportsByOwner, type User } from "@/lib/repository.ts";
+import type { ReportsPageStrings } from "@/lib/i18n/index.ts";
 import ReportsList from "@/islands/ReportsList.tsx";
 import Header from "@/components/Header.tsx";
 
@@ -25,6 +26,11 @@ export const handler = define.handlers({
     }
 
     const reports = await getReportsByOwner(user.id);
+    const translations = ctx.state.translations;
+    const strings: ReportsPageStrings = {
+      common: translations.common as ReportsPageStrings["common"],
+      reports: translations.reports as ReportsPageStrings["reports"],
+    };
 
     return {
       data: {
@@ -36,7 +42,7 @@ export const handler = define.handlers({
           createdAt: r.createdAt,
         })),
         locale: ctx.state.locale,
-        translations: ctx.state.translations,
+        strings,
       },
     };
   },
@@ -61,7 +67,7 @@ export default define.page<typeof handler>(function ReportsPage({
           <h1 class="text-2xl font-bold mb-6">{t("reports.title")}</h1>
           <ReportsList
             initialReports={reports}
-            translations={data.translations}
+            strings={data.strings}
             locale={data.locale}
           />
         </main>

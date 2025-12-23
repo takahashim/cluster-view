@@ -26,6 +26,72 @@ const translations: Record<Locale, Translations> = {
   en: en as Translations,
 };
 
+// =============================================================================
+// Auto-derived types from translation JSON
+// =============================================================================
+
+/** Type automatically derived from translation JSON structure */
+export type TranslationsShape = typeof ja;
+
+/** Common strings (buttons, labels) */
+export type CommonStrings = TranslationsShape["common"];
+
+/** ReportView page strings */
+export type ReportViewStrings = TranslationsShape["reportView"];
+
+/** Filter panel strings */
+export type FilterStrings = TranslationsShape["reportView"]["filter"];
+
+/** Chart type strings */
+export type ChartTypeStrings = TranslationsShape["reportView"]["chartTypes"];
+
+/** Breadcrumb strings */
+export type BreadcrumbStrings = TranslationsShape["reportView"]["breadcrumb"];
+
+/** Uploader strings */
+export type UploaderStrings = TranslationsShape["uploader"];
+
+/** Reports list strings */
+export type ReportsStrings = TranslationsShape["reports"];
+
+/** Strings needed for SharePage (ReportView island) */
+export interface SharePageStrings {
+  common: CommonStrings;
+  reportView: ReportViewStrings;
+}
+
+/** Strings needed for HomePage (FileUploader island) */
+export interface HomePageStrings {
+  common: CommonStrings;
+  uploader: UploaderStrings;
+}
+
+/** Strings needed for ReportsPage (ReportsList island) */
+export interface ReportsPageStrings {
+  common: CommonStrings;
+  reports: ReportsStrings;
+}
+
+/**
+ * Interpolate parameters into a template string.
+ * Use this on the client side for dynamic strings.
+ *
+ * @param template - Template string with {key} placeholders
+ * @param params - Parameters to interpolate
+ * @returns Interpolated string
+ *
+ * @example
+ * interpolateTemplate("{count}件", { count: 100 }) // returns "100件"
+ */
+export function interpolateTemplate(
+  template: string,
+  params: Record<string, string | number>,
+): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => {
+    return params[key] !== undefined ? String(params[key]) : `{${key}}`;
+  });
+}
+
 /**
  * Parse Accept-Language header and detect the best matching locale.
  *
@@ -177,21 +243,6 @@ export function createTranslator(locale: Locale): TranslateFunction {
  */
 export function getTranslations(locale: Locale): Translations {
   return translations[locale];
-}
-
-/**
- * Create a translate function from a translations object.
- * Low-level function - prefer useTranslation hook in components.
- *
- * @param translations - The translations object
- * @returns A translation function
- */
-export function createT(translations: Translations): TranslateFunction {
-  return (key: string, params?: Record<string, string | number>): string => {
-    const text = getNestedValue(translations, key);
-    if (typeof text !== "string") return key;
-    return interpolate(text, params);
-  };
 }
 
 /**

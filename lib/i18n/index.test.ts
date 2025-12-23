@@ -1,7 +1,6 @@
 import { assertEquals, assertExists } from "@std/assert";
 import {
   createI18nState,
-  createT,
   createTranslator,
   DEFAULT_LOCALE,
   detectLocale,
@@ -228,53 +227,6 @@ Deno.test("createTranslator", async (t) => {
     const t = createTranslator("en");
     const result = t("common.appName");
     assertEquals(result, "Cluster View");
-  });
-});
-
-// ============================================================
-// createT tests (for components)
-// ============================================================
-
-Deno.test("createT - component translation helper", async (t) => {
-  const jaTranslations = getTranslations("ja");
-  const enTranslations = getTranslations("en");
-
-  await t.step("creates translator from translations object", () => {
-    const t = createT(jaTranslations);
-    assertEquals(typeof t, "function");
-  });
-
-  await t.step("translates simple key", () => {
-    const t = createT(jaTranslations);
-    assertEquals(t("common.appName"), "Cluster View");
-  });
-
-  await t.step("translates nested key", () => {
-    const t = createT(jaTranslations);
-    assertEquals(
-      t("home.features.visualization.title"),
-      "インタラクティブな可視化",
-    );
-  });
-
-  await t.step("interpolates parameters", () => {
-    const t = createT(jaTranslations);
-    assertEquals(t("common.comments", { count: 42 }), "42 件の意見");
-  });
-
-  await t.step("returns key for missing translation", () => {
-    const t = createT(jaTranslations);
-    assertEquals(t("nonexistent.key"), "nonexistent.key");
-  });
-
-  await t.step("works with English translations", () => {
-    const t = createT(enTranslations);
-    assertEquals(t("common.login"), "Sign in with Google");
-  });
-
-  await t.step("keeps placeholder if parameter missing", () => {
-    const t = createT(jaTranslations);
-    assertEquals(t("common.comments", {}), "{count} 件の意見");
   });
 });
 

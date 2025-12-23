@@ -1,6 +1,5 @@
 import type { ChartType } from "@/lib/constants.ts";
-import { useTranslation } from "@/lib/i18n/hooks.ts";
-import type { Translations } from "@/lib/i18n/types.ts";
+import type { SharePageStrings } from "@/lib/i18n/index.ts";
 
 interface ChartToolbarProps {
   chartType: ChartType;
@@ -9,7 +8,7 @@ interface ChartToolbarProps {
   activeFilterCount: number;
   onFilterClick: () => void;
   onFullscreenClick?: () => void;
-  translations: Translations;
+  strings: SharePageStrings;
 }
 
 export default function ChartToolbar({
@@ -19,10 +18,8 @@ export default function ChartToolbar({
   activeFilterCount,
   onFilterClick,
   onFullscreenClick,
-  translations,
+  strings,
 }: ChartToolbarProps) {
-  const t = useTranslation(translations);
-
   return (
     <div class="flex items-center gap-2">
       <div class="join">
@@ -33,7 +30,7 @@ export default function ChartToolbar({
           }`}
           onClick={() => onChartTypeChange("scatterAll")}
         >
-          {t("reportView.chartTypes.all")}
+          {strings.reportView.chartTypes.all}
         </button>
         <button
           type="button"
@@ -42,7 +39,7 @@ export default function ChartToolbar({
           }`}
           onClick={() => onChartTypeChange("scatterDensity")}
         >
-          {t("reportView.chartTypes.density")}
+          {strings.reportView.chartTypes.density}
         </button>
         <button
           type="button"
@@ -51,7 +48,7 @@ export default function ChartToolbar({
           }`}
           onClick={() => onChartTypeChange("treemap")}
         >
-          {t("reportView.chartTypes.tree")}
+          {strings.reportView.chartTypes.tree}
         </button>
       </div>
       {/* フィルタボタン */}
@@ -59,7 +56,7 @@ export default function ChartToolbar({
         type="button"
         class={`btn btn-sm ${isFiltering ? "btn-secondary" : "btn-ghost"}`}
         onClick={onFilterClick}
-        title={t("reportView.filter.button")}
+        title={strings.reportView.filter.button}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -83,7 +80,7 @@ export default function ChartToolbar({
           type="button"
           class="btn btn-sm btn-ghost"
           onClick={onFullscreenClick}
-          title={t("reportView.fullscreen")}
+          title={strings.reportView.fullscreen}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

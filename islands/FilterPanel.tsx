@@ -1,7 +1,9 @@
 import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import type { Argument, Cluster, FilterState } from "@/lib/types.ts";
-import { useTranslation } from "@/lib/i18n/hooks.ts";
-import type { Translations } from "@/lib/i18n/types.ts";
+import {
+  interpolateTemplate,
+  type SharePageStrings,
+} from "@/lib/i18n/index.ts";
 import { DEFAULT_MAX_DENSITY, DEFAULT_MIN_VALUE } from "@/lib/constants.ts";
 
 // デフォルトのフィルタ状態を作成
@@ -33,7 +35,7 @@ interface FilterPanelProps {
   onClose: () => void;
   filterState: FilterState;
   onFilterChange: (state: FilterState) => void;
-  translations: Translations;
+  strings: SharePageStrings;
 }
 
 export default function FilterPanel({
@@ -43,9 +45,8 @@ export default function FilterPanel({
   onClose,
   filterState,
   onFilterChange,
-  translations,
+  strings,
 }: FilterPanelProps) {
-  const t = useTranslation(translations);
   // 属性メタデータを計算
   const attributeMetas = useComputed<AttributeMeta[]>(() => {
     const attrMap: Record<string, {
@@ -190,18 +191,20 @@ export default function FilterPanel({
   return (
     <div class="modal modal-open">
       <div class="modal-box max-w-2xl max-h-[80vh] overflow-y-auto">
-        <h3 class="font-bold text-lg mb-4">{t("reportView.filter.title")}</h3>
+        <h3 class="font-bold text-lg mb-4">
+          {strings.reportView.filter.title}
+        </h3>
 
         {/* テキスト検索 */}
         <div class="form-control mb-6">
           <label class="label">
             <span class="label-text font-semibold">
-              {t("reportView.filter.textSearch")}
+              {strings.reportView.filter.textSearch}
             </span>
           </label>
           <input
             type="text"
-            placeholder={t("reportView.filter.textPlaceholder")}
+            placeholder={strings.reportView.filter.textPlaceholder}
             class="input input-bordered w-full"
             value={localTextSearch.value}
             onInput={(e) => {
@@ -215,16 +218,19 @@ export default function FilterPanel({
           <div class="mb-6">
             <label class="label">
               <span class="label-text font-semibold">
-                {t("reportView.filter.density")}
+                {strings.reportView.filter.density}
               </span>
             </label>
             <div class="bg-base-200 rounded-lg p-4">
               <div class="form-control mb-4">
                 <label class="label">
                   <span class="label-text">
-                    {t("reportView.filter.densityRank", {
-                      percent: Math.round(localMaxDensity.value * 100),
-                    })}
+                    {interpolateTemplate(
+                      strings.reportView.filter.densityRank,
+                      {
+                        percent: Math.round(localMaxDensity.value * 100),
+                      },
+                    )}
                   </span>
                 </label>
                 <input
@@ -250,7 +256,7 @@ export default function FilterPanel({
               <div class="form-control">
                 <label class="label">
                   <span class="label-text">
-                    {t("reportView.filter.minCount", {
+                    {interpolateTemplate(strings.reportView.filter.minCount, {
                       count: localMinValue.value,
                     })}
                   </span>
@@ -286,7 +292,7 @@ export default function FilterPanel({
           <div class="mb-6">
             <label class="label">
               <span class="label-text font-semibold">
-                {t("reportView.filter.categoryFilter")}
+                {strings.reportView.filter.categoryFilter}
               </span>
             </label>
             <div class="space-y-4">
@@ -336,7 +342,7 @@ export default function FilterPanel({
           <div class="mb-6">
             <label class="label">
               <span class="label-text font-semibold">
-                {t("reportView.filter.numericFilter")}
+                {strings.reportView.filter.numericFilter}
               </span>
             </label>
             <div class="space-y-4">
@@ -357,7 +363,7 @@ export default function FilterPanel({
                         <div class="font-medium">{attr.name}</div>
                         <label class="flex items-center gap-2 cursor-pointer">
                           <span class="text-sm">
-                            {t("reportView.filter.enableFilter")}
+                            {strings.reportView.filter.enableFilter}
                           </span>
                           <input
                             type="checkbox"
@@ -390,16 +396,19 @@ export default function FilterPanel({
                         }`}
                       >
                         <div class="text-sm text-base-content/70">
-                          {t("reportView.filter.dataRange", {
-                            min: range[0],
-                            max: range[1],
-                          })}
+                          {interpolateTemplate(
+                            strings.reportView.filter.dataRange,
+                            {
+                              min: range[0],
+                              max: range[1],
+                            },
+                          )}
                         </div>
                         <div class="flex items-center gap-3">
                           <div class="form-control flex-1">
                             <label class="label py-1">
                               <span class="label-text text-xs">
-                                {t("reportView.filter.minValue")}
+                                {strings.reportView.filter.minValue}
                               </span>
                             </label>
                             <input
@@ -426,7 +435,7 @@ export default function FilterPanel({
                           <div class="form-control flex-1">
                             <label class="label py-1">
                               <span class="label-text text-xs">
-                                {t("reportView.filter.maxValue")}
+                                {strings.reportView.filter.maxValue}
                               </span>
                             </label>
                             <input
@@ -465,7 +474,7 @@ export default function FilterPanel({
                             }}
                           />
                           <span class="text-sm">
-                            {t("reportView.filter.includeEmpty")}
+                            {strings.reportView.filter.includeEmpty}
                           </span>
                         </label>
                       </div>
@@ -478,19 +487,19 @@ export default function FilterPanel({
 
         {!hasDensityData && attributeMetas.value.length === 0 && (
           <div class="alert alert-info mb-6">
-            <span>{t("reportView.filter.noFilterData")}</span>
+            <span>{strings.reportView.filter.noFilterData}</span>
           </div>
         )}
 
         <div class="modal-action">
           <button type="button" class="btn btn-ghost" onClick={handleReset}>
-            {t("common.reset")}
+            {strings.common.reset}
           </button>
           <button type="button" class="btn btn-ghost" onClick={onClose}>
-            {t("common.cancel")}
+            {strings.common.cancel}
           </button>
           <button type="button" class="btn btn-primary" onClick={handleApply}>
-            {t("common.apply")}
+            {strings.common.apply}
           </button>
         </div>
       </div>

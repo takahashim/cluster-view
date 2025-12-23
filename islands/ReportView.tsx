@@ -1,13 +1,16 @@
+import type { ComponentChildren } from "preact";
 import { useComputed, useSignal } from "@preact/signals";
 import type { Cluster, FilterState, HierarchicalResult } from "@/lib/types.ts";
-import { useTranslation } from "@/lib/i18n/hooks.ts";
-import type { Locale, Translations } from "@/lib/i18n/types.ts";
+import type { Locale } from "@/lib/i18n/types.ts";
+import {
+  interpolateTemplate,
+  type SharePageStrings,
+} from "@/lib/i18n/index.ts";
 import {
   type ChartType,
   DEFAULT_MAX_DENSITY,
   DEFAULT_MIN_VALUE,
 } from "@/lib/constants.ts";
-import Overview from "@/components/Overview.tsx";
 import ClusterGrid from "@/components/ClusterGrid.tsx";
 import ClusterBreadcrumb from "@/components/ClusterBreadcrumb.tsx";
 import ChartToolbar from "@/components/ChartToolbar.tsx";
@@ -21,16 +24,15 @@ import LanguageSwitcher from "./LanguageSwitcher.tsx";
 
 interface ReportViewProps {
   data: HierarchicalResult;
-  title: string;
   shareToken: string;
-  translations: Translations;
+  strings: SharePageStrings;
   locale: Locale;
+  children: ComponentChildren;
 }
 
 export default function ReportView(
-  { data, title, shareToken, translations, locale }: ReportViewProps,
+  { data, shareToken, strings, locale, children }: ReportViewProps,
 ) {
-  const t = useTranslation(translations);
   const selectedClusterId = useSignal<string | null>(null);
   const copied = useSignal(false);
   const chartType = useSignal<ChartType>("scatterAll");
@@ -130,7 +132,6 @@ export default function ReportView(
     }
   };
 
-  const commentCount = data.comment_num || Object.keys(data.comments).length;
   const selectedCluster = selectedClusterId.value
     ? getClusterById(selectedClusterId.value)
     : null;
@@ -191,7 +192,7 @@ export default function ReportView(
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
-            <span>{t("common.appName")}</span>
+            <span>{strings.common.appName}</span>
           </a>
         </div>
         <div class="flex-none flex items-center gap-2">
@@ -216,7 +217,7 @@ export default function ReportView(
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  {t("reportView.copied")}
+                  {strings.reportView.copied}
                 </>
               )
               : (
@@ -235,7 +236,7 @@ export default function ReportView(
                     <polyline points="16 6 12 2 8 6" />
                     <line x1="12" y1="2" x2="12" y2="15" />
                   </svg>
-                  {t("reportView.copyUrl")}
+                  {strings.reportView.copyUrl}
                 </>
               )}
           </button>
@@ -243,17 +244,14 @@ export default function ReportView(
       </header>
 
       <main class="max-w-6xl mx-auto p-4 md:p-6">
-        <Overview
-          title={title}
-          commentCount={commentCount}
-          overview={data.overview}
-          translations={translations}
-        />
+        {children}
 
         <section class="card bg-base-100 shadow-sm mb-6">
           <div class="card-body">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <h2 class="card-title text-lg">{t("reportView.distribution")}</h2>
+              <h2 class="card-title text-lg">
+                {strings.reportView.distribution}
+              </h2>
               <ChartToolbar
                 chartType={chartType.value}
                 onChartTypeChange={handleChartTypeChange}
@@ -265,7 +263,7 @@ export default function ReportView(
                 onFullscreenClick={() => {
                   isFullscreen.value = true;
                 }}
-                translations={translations}
+                strings={strings}
               />
             </div>
 
@@ -283,7 +281,7 @@ export default function ReportView(
                   <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                 </svg>
                 <span class="text-sm">
-                  {t("reportView.filter.active", {
+                  {interpolateTemplate(strings.reportView.filter.active, {
                     filtered: filteredArgumentIds.value.size,
                     total: data.arguments.length,
                   })}
@@ -295,7 +293,7 @@ export default function ReportView(
                     filterState.value = createDefaultFilterState();
                   }}
                 >
-                  {t("common.clear")}
+                  {strings.common.clear}
                 </button>
               </div>
             )}
@@ -339,7 +337,7 @@ export default function ReportView(
           onNavigate={(id) => {
             selectedClusterId.value = id;
           }}
-          translations={translations}
+          strings={strings}
         />
 
         {selectedCluster && (
@@ -361,7 +359,7 @@ export default function ReportView(
               >
                 <polyline points="15 18 9 12 15 6" />
               </svg>
-              {t("reportView.backToList")}
+              {strings.reportView.backToList}
             </button>
             <span class="text-lg font-semibold">{selectedCluster.label}</span>
           </div>
@@ -371,7 +369,7 @@ export default function ReportView(
           <ClusterGrid
             clusters={displayClusters}
             onClusterClick={handleClusterClick}
-            translations={translations}
+            strings={strings}
           />
         )}
       </main>
@@ -388,7 +386,7 @@ export default function ReportView(
                 onClick={() => {
                   isFullscreen.value = false;
                 }}
-                title={t("reportView.exitFullscreen")}
+                title={strings.reportView.exitFullscreen}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -417,7 +415,7 @@ export default function ReportView(
                   onFilterClick={() => {
                     isFilterPanelOpen.value = true;
                   }}
-                  translations={translations}
+                  strings={strings}
                 />
               </div>
 
@@ -473,7 +471,7 @@ export default function ReportView(
         }}
         filterState={filterState.value}
         onFilterChange={handleFilterChange}
-        translations={translations}
+        strings={strings}
       />
     </div>
   );

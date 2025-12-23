@@ -2,17 +2,23 @@ import { Head } from "fresh/runtime";
 import { define } from "../utils.ts";
 import { getCurrentUser } from "@/lib/auth.ts";
 import type { User } from "@/lib/repository.ts";
+import type { HomePageStrings } from "@/lib/i18n/index.ts";
 import FileUploader from "../islands/FileUploader.tsx";
 import Header from "@/components/Header.tsx";
 
 export const handler = define.handlers({
   async GET(ctx) {
     const user = await getCurrentUser(ctx.req);
+    const translations = ctx.state.translations;
+    const strings: HomePageStrings = {
+      common: translations.common as HomePageStrings["common"],
+      uploader: translations.uploader as HomePageStrings["uploader"],
+    };
     return {
       data: {
         user,
         locale: ctx.state.locale,
-        translations: ctx.state.translations,
+        strings,
       },
     };
   },
@@ -51,8 +57,7 @@ export default define.page<typeof handler>(function Home({ data, state }) {
 
         <FileUploader
           user={user}
-          translations={data.translations}
-          locale={data.locale}
+          strings={data.strings}
         />
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">

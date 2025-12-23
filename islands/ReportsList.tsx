@@ -1,6 +1,6 @@
 import { useSignal } from "@preact/signals";
-import { useTranslation } from "@/lib/i18n/hooks.ts";
-import type { Locale, Translations } from "@/lib/i18n/types.ts";
+import type { ReportsPageStrings } from "@/lib/i18n/index.ts";
+import type { Locale } from "@/lib/i18n/types.ts";
 
 interface ReportSummary {
   id: string;
@@ -11,19 +11,18 @@ interface ReportSummary {
 
 interface ReportsListProps {
   initialReports: ReportSummary[];
-  translations: Translations;
+  strings: ReportsPageStrings;
   locale: Locale;
 }
 
 export default function ReportsList(
-  { initialReports, translations, locale }: ReportsListProps,
+  { initialReports, strings, locale }: ReportsListProps,
 ) {
-  const t = useTranslation(translations);
   const reports = useSignal(initialReports);
   const deletingId = useSignal<string | null>(null);
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t("reports.confirmDelete"))) return;
+    if (!confirm(strings.reports.confirmDelete)) return;
 
     deletingId.value = id;
 
@@ -35,11 +34,11 @@ export default function ReportsList(
       if (response.ok) {
         reports.value = reports.value.filter((r) => r.id !== id);
       } else {
-        alert(t("reports.deleteFailed"));
+        alert(strings.reports.deleteFailed);
       }
     } catch (error) {
       console.error("Delete failed:", error);
-      alert(t("reports.deleteFailed"));
+      alert(strings.reports.deleteFailed);
     } finally {
       deletingId.value = null;
     }
@@ -58,9 +57,9 @@ export default function ReportsList(
     return (
       <div class="card bg-base-100 shadow-sm">
         <div class="card-body text-center text-base-content/60">
-          <p>{t("reports.empty")}</p>
+          <p>{strings.reports.empty}</p>
           <a href="/" class="btn btn-primary btn-sm mt-4">
-            {t("reports.createNew")}
+            {strings.reports.createNew}
           </a>
         </div>
       </div>
@@ -86,7 +85,7 @@ export default function ReportsList(
                 href={`/share/${report.shareToken}`}
                 class="btn btn-primary btn-sm"
               >
-                {t("common.open")}
+                {strings.common.open}
               </a>
               <button
                 type="button"
@@ -97,7 +96,7 @@ export default function ReportsList(
                   handleDelete(report.id)}
                 disabled={deletingId.value !== null}
               >
-                {t("common.delete")}
+                {strings.common.delete}
               </button>
             </div>
           </div>
