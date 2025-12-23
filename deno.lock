@@ -38,6 +38,7 @@
     "jsr:@std/semver@^1.0.6": "1.0.7",
     "jsr:@std/streams@0.221": "0.221.0",
     "jsr:@std/uuid@^1.0.9": "1.0.9",
+    "jsr:@takahashim/island-i18n@0.1": "0.1.0",
     "npm:@babel/core@^7.28.0": "7.28.0",
     "npm:@babel/preset-react@^7.27.1": "7.27.1_@babel+core@7.28.0",
     "npm:@mjackson/node-fetch-server@0.7": "0.7.0",
@@ -237,6 +238,9 @@
       "dependencies": [
         "jsr:@std/bytes"
       ]
+    },
+    "@takahashim/island-i18n@0.1.0": {
+      "integrity": "870ae29a9b6e0d08d31879c86471bc2ef4600086d4c537464c90ce1e4a14fb0b"
     }
   },
   "npm": {
@@ -1675,6 +1679,7 @@
       "jsr:@fresh/plugin-vite@^1.0.8",
       "jsr:@std/assert@1",
       "jsr:@std/uuid@1",
+      "jsr:@takahashim/island-i18n@0.1",
       "npm:@preact/signals@^2.5.0",
       "npm:autoprefixer@^10.4.0",
       "npm:daisyui@^4.12.0",
