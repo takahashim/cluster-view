@@ -14,9 +14,9 @@
  * @returns Interpolated string
  *
  * @example
- * interpolateTemplate("{count}件", { count: 100 }) // returns "100件"
+ * interpolate("{count}件", { count: 100 }) // returns "100件"
  */
-export function interpolateTemplate(
+export function interpolate(
   template: string,
   params: Record<string, string | number>,
 ): string {

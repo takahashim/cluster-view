@@ -1,8 +1,5 @@
 import type { Cluster } from "@/lib/types.ts";
-import {
-  interpolateTemplate,
-  type TranslationsData,
-} from "@/lib/i18n/index.ts";
+import { interpolate, type TranslationsData } from "@/lib/i18n/index.ts";
 
 interface ClusterCardProps {
   cluster: Cluster;
@@ -34,7 +31,7 @@ export default function ClusterCard(
             class="px-2 py-1 text-xs font-medium text-white rounded-full shrink-0"
             style={{ backgroundColor: color }}
           >
-            {interpolateTemplate(strings.common.items, {
+            {interpolate(strings.common.items, {
               count: cluster.value,
             })}
           </span>

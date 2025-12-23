@@ -2,7 +2,7 @@ import type { ComponentChildren } from "preact";
 import { useComputed, useSignal } from "@preact/signals";
 import type { Cluster, FilterState, HierarchicalResult } from "@/lib/types.ts";
 import {
-  interpolateTemplate,
+  interpolate,
   type Locale,
   type TranslationsData,
 } from "@/lib/i18n/index.ts";
@@ -283,7 +283,7 @@ export default function ReportView(
                   <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                 </svg>
                 <span class="text-sm">
-                  {interpolateTemplate(strings.reportView.filter.active, {
+                  {interpolate(strings.reportView.filter.active, {
                     filtered: filteredArgumentIds.value.size,
                     total: data.arguments.length,
                   })}

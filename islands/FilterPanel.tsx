@@ -1,9 +1,6 @@
 import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import type { Argument, Cluster, FilterState } from "@/lib/types.ts";
-import {
-  interpolateTemplate,
-  type TranslationsData,
-} from "@/lib/i18n/index.ts";
+import { interpolate, type TranslationsData } from "@/lib/i18n/index.ts";
 import { DEFAULT_MAX_DENSITY, DEFAULT_MIN_VALUE } from "@/lib/constants.ts";
 
 // デフォルトのフィルタ状態を作成
@@ -225,7 +222,7 @@ export default function FilterPanel({
               <div class="form-control mb-4">
                 <label class="label">
                   <span class="label-text">
-                    {interpolateTemplate(
+                    {interpolate(
                       strings.reportView.filter.densityRank,
                       {
                         percent: Math.round(localMaxDensity.value * 100),
@@ -256,7 +253,7 @@ export default function FilterPanel({
               <div class="form-control">
                 <label class="label">
                   <span class="label-text">
-                    {interpolateTemplate(strings.reportView.filter.minCount, {
+                    {interpolate(strings.reportView.filter.minCount, {
                       count: localMinValue.value,
                     })}
                   </span>
@@ -396,7 +393,7 @@ export default function FilterPanel({
                         }`}
                       >
                         <div class="text-sm text-base-content/70">
-                          {interpolateTemplate(
+                          {interpolate(
                             strings.reportView.filter.dataRange,
                             {
                               min: range[0],
