@@ -170,14 +170,19 @@ export class MemoryStore implements Store {
   }
 }
 
-class DenoKvStore implements Store {
-  private kv: Deno.Kv | null = null;
+// Global KV instance to ensure consistency across all code paths
+let globalKv: Deno.Kv | null = null;
 
+async function getGlobalKv(): Promise<Deno.Kv> {
+  if (!globalKv) {
+    globalKv = await Deno.openKv();
+  }
+  return globalKv;
+}
+
+class DenoKvStore implements Store {
   private async getKv(): Promise<Deno.Kv> {
-    if (!this.kv) {
-      this.kv = await Deno.openKv();
-    }
-    return this.kv;
+    return await getGlobalKv();
   }
 
   // Debug method (temporary)

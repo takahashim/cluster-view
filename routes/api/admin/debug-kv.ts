@@ -32,6 +32,9 @@ export const handler = define.handlers({
     const storeKv = store.getKvInstance ? await store.getKvInstance() : null;
     const freshKv = await Deno.openKv();
 
+    // Use store's KV for all operations to ensure consistency
+    const kv = storeKv || freshKv;
+
     // Read with store's KV
     const storeKvSessionRead = storeKv && sessionId
       ? await storeKv.get(["sessions", sessionId])
@@ -54,8 +57,6 @@ export const handler = define.handlers({
         : null,
       kvInstancesAreSame: storeKv === freshKv,
     };
-
-    const kv = freshKv;
 
     // Test write/read
     const testKey = ["_debug_test", "write_check"];
