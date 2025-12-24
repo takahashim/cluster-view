@@ -100,7 +100,11 @@ export function signIn(_request: Request): Response {
       "https://www.googleapis.com/auth/userinfo.profile",
     ];
 
-    const url = getGoogleClient().createAuthorizationURL(state, codeVerifier, scopes);
+    const url = getGoogleClient().createAuthorizationURL(
+      state,
+      codeVerifier,
+      scopes,
+    );
 
     const headers = new Headers();
     headers.set("Location", url.toString());
@@ -158,7 +162,10 @@ export async function handleCallback(request: Request): Promise<{
     }
 
     // Exchange code for tokens
-    const tokens = await getGoogleClient().validateAuthorizationCode(code, codeVerifier);
+    const tokens = await getGoogleClient().validateAuthorizationCode(
+      code,
+      codeVerifier,
+    );
     const accessToken = tokens.accessToken();
 
     // Create session
