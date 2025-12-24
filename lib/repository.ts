@@ -65,14 +65,15 @@ export async function createReport(
     shareEnabled: true,
   };
 
-  const success = await store.atomicSaveRecordWithToken(record, shareToken);
+  const success = await store.atomicSaveRecordWithToken(
+    record,
+    shareToken,
+    ownerId,
+  );
 
   if (!success) {
     throw new Error("Failed to create report");
   }
-
-  // Add to user's report index
-  await store.addUserReportIndex(ownerId, id);
 
   return toReport(record);
 }

@@ -12,6 +12,7 @@ export interface Store {
   atomicSaveRecordWithToken(
     record: ReportRecord,
     token: string,
+    ownerId: string,
   ): Promise<boolean>;
   atomicDeleteRecordWithToken(id: string, token: string): Promise<boolean>;
   atomicUpdateToken(
@@ -71,9 +72,11 @@ export class MemoryStore implements Store {
   atomicSaveRecordWithToken(
     record: ReportRecord,
     token: string,
+    ownerId: string,
   ): Promise<boolean> {
     this.data.set(`reports:${record.id}`, record);
     this.data.set(`share_tokens:${token}`, record.id);
+    this.data.set(`user_reports:${ownerId}:${record.id}`, true);
     return Promise.resolve(true);
   }
 
@@ -264,6 +267,7 @@ class DenoKvStore implements Store {
   async atomicSaveRecordWithToken(
     record: ReportRecord,
     token: string,
+    ownerId: string,
   ): Promise<boolean> {
     const kv = await this.getKv();
 
@@ -276,11 +280,14 @@ class DenoKvStore implements Store {
       kvRecord = record;
     }
 
-    // Save metadata and token index
-    await kv.set(["reports", record.id], kvRecord);
-    await kv.set(["share_tokens", token], record.id);
+    // Use atomic transaction for metadata, token index, and user index
+    const result = await kv.atomic()
+      .set(["reports", record.id], kvRecord)
+      .set(["share_tokens", token], record.id)
+      .set(["user_reports", ownerId, record.id], true)
+      .commit();
 
-    return true;
+    return result.ok;
   }
 
   async atomicDeleteRecordWithToken(
@@ -338,9 +345,10 @@ class DenoKvStore implements Store {
     const iter = kv.list<boolean>({ prefix: ["user_reports", ownerId] });
     for await (const entry of iter) {
       const reportId = entry.key[2] as string;
-      const record = await kv.get<ReportRecord>(["reports", reportId]);
-      if (record.value) {
-        reports.push(record.value);
+      // Use getRecord to properly load data from chunks
+      const record = await this.getRecord(reportId);
+      if (record) {
+        reports.push(record);
       }
     }
 

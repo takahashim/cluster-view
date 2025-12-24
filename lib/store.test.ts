@@ -98,7 +98,7 @@ Deno.test("MemoryStore - Token index operations", async (t) => {
 
 Deno.test("MemoryStore - Atomic operations", async (t) => {
   await t.step(
-    "atomicSaveRecordWithToken saves both record and token",
+    "atomicSaveRecordWithToken saves record, token, and user index",
     async () => {
       const store = new MemoryStore();
       const record = createTestReportRecord({
@@ -106,14 +106,21 @@ Deno.test("MemoryStore - Atomic operations", async (t) => {
         shareToken: "atomic-token",
       });
 
-      await store.atomicSaveRecordWithToken(record, record.shareToken);
+      await store.atomicSaveRecordWithToken(
+        record,
+        record.shareToken,
+        record.ownerId,
+      );
 
       const savedRecord = await store.getRecord(record.id);
       const reportId = await store.getReportIdByToken(record.shareToken);
+      const userReports = await store.getReportRecordsByOwner(record.ownerId);
 
       assertExists(savedRecord);
       assertEquals(savedRecord.id, record.id);
       assertEquals(reportId, record.id);
+      assertEquals(userReports.length, 1);
+      assertEquals(userReports[0].id, record.id);
     },
   );
 
@@ -123,7 +130,11 @@ Deno.test("MemoryStore - Atomic operations", async (t) => {
       const store = new MemoryStore();
       const record = createTestReportRecord();
 
-      await store.atomicSaveRecordWithToken(record, record.shareToken);
+      await store.atomicSaveRecordWithToken(
+        record,
+        record.shareToken,
+        record.ownerId,
+      );
       await store.atomicDeleteRecordWithToken(record.id, record.shareToken);
 
       const savedRecord = await store.getRecord(record.id);
@@ -138,7 +149,7 @@ Deno.test("MemoryStore - Atomic operations", async (t) => {
     const store = new MemoryStore();
     const record = createTestReportRecord({ shareToken: "old-token" });
 
-    await store.atomicSaveRecordWithToken(record, "old-token");
+    await store.atomicSaveRecordWithToken(record, "old-token", record.ownerId);
     const updatedRecord = { ...record, shareToken: "new-token" };
     await store.atomicUpdateToken(
       record.id,
