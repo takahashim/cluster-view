@@ -2,6 +2,7 @@ import { Head } from "fresh/runtime";
 import { define } from "@/utils.ts";
 import { getCurrentUser } from "@/lib/auth.ts";
 import { getReportsByOwner, type User } from "@/lib/repository.ts";
+import type { Locale, TranslationsData } from "@/lib/i18n/index.ts";
 import ReportsList from "@/islands/ReportsList.tsx";
 import Header from "@/components/Header.tsx";
 
@@ -10,6 +11,14 @@ interface ReportSummary {
   title: string;
   shareToken: string;
   createdAt: string;
+}
+
+type PageStrings = Pick<TranslationsData, "common" | "reports">;
+interface PageData {
+  user: User;
+  reports: ReportSummary[];
+  locale: Locale;
+  strings: PageStrings;
 }
 
 export const handler = define.handlers({
@@ -44,9 +53,8 @@ export const handler = define.handlers({
 });
 
 export default define.page<typeof handler>(function ReportsPage({ data }) {
-  const { user, reports } = data as { user: User; reports: ReportSummary[] };
-  const { locale } = data;
-  const { common, reports: reportsStrings } = data.strings;
+  const { user, reports, locale, strings } = data as PageData;
+  const { common, reports: reportsStrings } = strings;
 
   return (
     <>
@@ -65,7 +73,7 @@ export default define.page<typeof handler>(function ReportsPage({ data }) {
           <h1 class="text-2xl font-bold mb-6">{reportsStrings.title}</h1>
           <ReportsList
             initialReports={reports}
-            strings={data.strings}
+            strings={strings}
             locale={locale}
           />
         </main>

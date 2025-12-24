@@ -2,8 +2,16 @@ import { Head } from "fresh/runtime";
 import { define } from "../utils.ts";
 import { getCurrentUser } from "@/lib/auth.ts";
 import type { User } from "@/lib/repository.ts";
+import type { Locale, TranslationsData } from "@/lib/i18n/index.ts";
 import FileUploader from "../islands/FileUploader.tsx";
 import Header from "@/components/Header.tsx";
+
+type PageStrings = Pick<TranslationsData, "common" | "uploader" | "home">;
+interface PageData {
+  user: User | null;
+  locale: Locale;
+  strings: PageStrings;
+}
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -20,9 +28,8 @@ export const handler = define.handlers({
 });
 
 export default define.page<typeof handler>(function Home({ data }) {
-  const user = data.user as User | null;
-  const { locale } = data;
-  const { common, home } = data.strings;
+  const { user, locale, strings } = data as PageData;
+  const { common, home } = strings;
 
   return (
     <div class="min-h-screen bg-base-200">
@@ -53,7 +60,7 @@ export default define.page<typeof handler>(function Home({ data }) {
 
         <FileUploader
           user={user}
-          strings={data.strings}
+          strings={strings}
         />
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">

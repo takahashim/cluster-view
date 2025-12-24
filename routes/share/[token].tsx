@@ -3,8 +3,16 @@ import { HttpError } from "fresh";
 import { define } from "@/utils.ts";
 import { getReportByToken } from "@/lib/repository.ts";
 import type { Report } from "@/lib/types.ts";
+import type { Locale, TranslationsData } from "@/lib/i18n/index.ts";
 import ReportView from "@/islands/ReportView.tsx";
 import Overview from "@/components/Overview.tsx";
+
+type PageStrings = Pick<TranslationsData, "common" | "reportView">;
+interface PageData {
+  report: Report;
+  locale: Locale;
+  strings: PageStrings;
+}
 
 export const handler = define.handlers({
   async GET(ctx) {
@@ -27,11 +35,11 @@ export const handler = define.handlers({
 });
 
 export default define.page<typeof handler>(function SharePage({ data }) {
-  const report: Report = data.report;
+  const { report, locale, strings } = data as PageData;
   const reportData = report.data!; // Guaranteed by handler check
   const commentCount = reportData.comment_num ||
     Object.keys(reportData.comments).length;
-  const { common } = data.strings;
+  const { common } = strings;
 
   return (
     <>
@@ -44,8 +52,8 @@ export default define.page<typeof handler>(function SharePage({ data }) {
       <ReportView
         data={reportData}
         shareToken={report.shareToken}
-        strings={data.strings}
-        locale={data.locale}
+        strings={strings}
+        locale={locale}
       >
         <Overview
           title={report.title}
