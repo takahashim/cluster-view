@@ -1,14 +1,21 @@
 import { Google } from "arctic";
 import { getUser, type User } from "./repository.ts";
-import { getStore } from "./store.ts";
+import { getStore, SESSION_EXPIRY_MS } from "./store.ts";
 
-// Session cookie name
+// Cookie names
 const SESSION_COOKIE_NAME = "session";
 const OAUTH_STATE_COOKIE_NAME = "oauth_state";
 const OAUTH_VERIFIER_COOKIE_NAME = "oauth_code_verifier";
 
-// Session expiry: 7 days
-const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+// Check if running in production (works on Deno Deploy, Cloudflare Workers, etc.)
+function isProduction(): boolean {
+  // Deno Deploy
+  if (Deno.env.get("DENO_DEPLOYMENT_ID")) return true;
+  // Cloudflare Workers / generic production flag
+  if (Deno.env.get("NODE_ENV") === "production") return true;
+  if (Deno.env.get("PRODUCTION") === "true") return true;
+  return false;
+}
 
 // Google OAuth client
 const google = new Google(
@@ -59,7 +66,7 @@ function createCookie(
   if (options.httpOnly !== false) {
     parts.push("HttpOnly");
   }
-  if (options.secure !== false && Deno.env.get("DENO_DEPLOYMENT_ID")) {
+  if (options.secure !== false && isProduction()) {
     parts.push("Secure");
   }
   parts.push(`SameSite=${options.sameSite || "Lax"}`);
@@ -220,7 +227,7 @@ export async function getCurrentUser(request: Request): Promise<User | null> {
   if (!sessionId) return null;
 
   const store = getStore();
-  const userId = await store.getSessionUserId(sessionId);
+  const userId = await store.getSession(sessionId);
   if (!userId) return null;
 
   return getUser(userId);

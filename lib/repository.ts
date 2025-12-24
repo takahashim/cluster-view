@@ -68,16 +68,7 @@ export async function createReport(
     commentCount,
   };
 
-  const success = await store.atomicSaveRecordWithToken(
-    record,
-    shareToken,
-    ownerId,
-  );
-
-  if (!success) {
-    throw new Error("Failed to create report");
-  }
-
+  await store.saveRecord(record);
   return toReport(record);
 }
 
@@ -85,16 +76,10 @@ export async function getReportByToken(
   token: string,
   store: Store = getStore(),
 ): Promise<Report | null> {
-  const id = await store.getReportIdByToken(token);
-  if (!id) {
-    return null;
-  }
-
-  const record = await store.getRecord(id);
+  const record = await store.getReportByToken(token);
   if (!record || !record.shareEnabled) {
     return null;
   }
-
   return toReport(record);
 }
 
@@ -114,13 +99,11 @@ export interface AdminReportSummary {
 export async function getAllReportsForAdmin(
   store: Store = getStore(),
 ): Promise<AdminReportSummary[]> {
-  const records = await store.getAllReportRecords();
+  const records = await store.getAllReports();
   const summaries: AdminReportSummary[] = [];
 
   for (const record of records) {
-    // Get owner info
-    const owner = await store.getUserRecord(record.ownerId);
-
+    const owner = await store.getUser(record.ownerId);
     summaries.push({
       id: record.id,
       title: record.title || DEFAULT_TITLE,
@@ -141,25 +124,15 @@ export async function regenerateShareToken(
   store: Store = getStore(),
 ): Promise<string | null> {
   const record = await store.getRecord(id);
-  if (!record) {
-    return null;
-  }
-
-  const oldToken = record.shareToken;
-  const newToken = nanoid(21);
+  if (!record) return null;
 
   const updated: ReportRecord = {
     ...record,
-    shareToken: newToken,
+    shareToken: nanoid(21),
   };
 
-  const success = await store.atomicUpdateToken(
-    id,
-    oldToken,
-    newToken,
-    updated,
-  );
-  return success ? newToken : null;
+  await store.saveRecord(updated);
+  return updated.shareToken;
 }
 
 export async function deleteReport(
@@ -167,21 +140,10 @@ export async function deleteReport(
   store: Store = getStore(),
 ): Promise<boolean> {
   const record = await store.getRecord(id);
-  if (!record) {
-    return false;
-  }
+  if (!record) return false;
 
-  const success = await store.atomicDeleteRecordWithToken(
-    id,
-    record.shareToken,
-  );
-
-  // Remove from user's report index if owner exists
-  if (success && record.ownerId) {
-    await store.removeUserReportIndex(record.ownerId, id);
-  }
-
-  return success;
+  await store.deleteRecord(id);
+  return true;
 }
 
 // User operations
@@ -190,7 +152,7 @@ export async function getUser(
   userId: string,
   store: Store = getStore(),
 ): Promise<User | null> {
-  const record = await store.getUserRecord(userId);
+  const record = await store.getUser(userId);
   return record ? toUser(record) : null;
 }
 
@@ -206,15 +168,11 @@ export async function getOrCreateUser(
   store: Store = getStore(),
 ): Promise<User> {
   const now = new Date().toISOString();
-
-  let record = await store.getUserRecord(profile.sub);
+  let record = await store.getUser(profile.sub);
 
   if (record) {
-    // Update last login
     record = { ...record, lastLoginAt: now };
-    await store.saveUserRecord(record);
   } else {
-    // Create new user
     record = {
       id: profile.sub,
       email: profile.email,
@@ -223,9 +181,9 @@ export async function getOrCreateUser(
       createdAt: now,
       lastLoginAt: now,
     };
-    await store.saveUserRecord(record);
   }
 
+  await store.saveUser(record);
   return toUser(record);
 }
 
@@ -233,7 +191,7 @@ export async function getReportsByOwner(
   ownerId: string,
   store: Store = getStore(),
 ): Promise<Report[]> {
-  const records = await store.getReportRecordsByOwner(ownerId);
+  const records = await store.getReportsByOwner(ownerId);
   return records.map(toReport);
 }
 
@@ -252,14 +210,6 @@ export async function deleteReportWithOwnerCheck(
     return { success: false, error: "Not authorized to delete this report" };
   }
 
-  const success = await store.atomicDeleteRecordWithToken(
-    id,
-    record.shareToken,
-  );
-
-  if (success && record.ownerId) {
-    await store.removeUserReportIndex(record.ownerId, id);
-  }
-
-  return { success };
+  await store.deleteRecord(id);
+  return { success: true };
 }

@@ -168,14 +168,15 @@ Deno.test("createReport", async (t) => {
     assertEquals(retrieved.ownerId, "user-1");
   });
 
-  await t.step("creates token index", async () => {
+  await t.step("report is retrievable by token", async () => {
     const store = new MemoryStore();
     const data = createTestData();
 
     const report = await createReport(data, "user-1", store);
-    const reportId = await store.getReportIdByToken(report.shareToken);
+    const retrieved = await store.getReportByToken(report.shareToken);
 
-    assertEquals(reportId, report.id);
+    assertExists(retrieved);
+    assertEquals(retrieved.id, report.id);
   });
 });
 
@@ -223,7 +224,6 @@ Deno.test("deleteReport", async (t) => {
 
     assertEquals(success, true);
     assertEquals(await store.getRecord(created.id), null);
-    assertEquals(await store.getReportIdByToken(created.shareToken), null);
   });
 
   await t.step("returns false for non-existent report", async () => {
@@ -254,8 +254,8 @@ Deno.test("regenerateShareToken", async (t) => {
 
     await regenerateShareToken(created.id, store);
 
-    const reportId = await store.getReportIdByToken(oldToken);
-    assertEquals(reportId, null);
+    const retrieved = await store.getReportByToken(oldToken);
+    assertEquals(retrieved, null);
   });
 
   await t.step("new token works", async () => {
@@ -265,8 +265,9 @@ Deno.test("regenerateShareToken", async (t) => {
 
     const newToken = await regenerateShareToken(created.id, store);
 
-    const reportId = await store.getReportIdByToken(newToken!);
-    assertEquals(reportId, created.id);
+    const retrieved = await store.getReportByToken(newToken!);
+    assertExists(retrieved);
+    assertEquals(retrieved.id, created.id);
   });
 
   await t.step("returns null for non-existent report", async () => {
@@ -279,7 +280,7 @@ Deno.test("regenerateShareToken", async (t) => {
 Deno.test("getUser", async (t) => {
   await t.step("retrieves user by id", async () => {
     const store = new MemoryStore();
-    await store.saveUserRecord({
+    await store.saveUser({
       id: "user-1",
       email: "test@example.com",
       name: "Test User",
@@ -329,14 +330,14 @@ Deno.test("getOrCreateUser", async (t) => {
 
     // Create user first time
     await getOrCreateUser(profile, store);
-    const firstRecord = await store.getUserRecord("google-123");
+    const firstRecord = await store.getUser("google-123");
 
     // Wait a bit to ensure different timestamp
     await new Promise((r) => setTimeout(r, 10));
 
     // Get user second time
     await getOrCreateUser(profile, store);
-    const secondRecord = await store.getUserRecord("google-123");
+    const secondRecord = await store.getUser("google-123");
 
     assertExists(firstRecord);
     assertExists(secondRecord);

@@ -1,42 +1,25 @@
 import { type Client, createClient } from "@libsql/client/web";
 import type { HierarchicalResult, ReportRecord, UserRecord } from "./types.ts";
 
+// Session expiry: 7 days (shared constant)
+export const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
 export interface Store {
   // Report methods
   getRecord(id: string): Promise<ReportRecord | null>;
-  getReportIdByToken(token: string): Promise<string | null>;
-  saveRecord(record: ReportRecord): Promise<boolean>;
-  deleteRecord(id: string): Promise<boolean>;
-  saveTokenIndex(token: string, id: string): Promise<boolean>;
-  deleteTokenIndex(token: string): Promise<boolean>;
-  atomicSaveRecordWithToken(
-    record: ReportRecord,
-    token: string,
-    ownerId: string,
-  ): Promise<boolean>;
-  atomicDeleteRecordWithToken(id: string, token: string): Promise<boolean>;
-  atomicUpdateToken(
-    id: string,
-    oldToken: string,
-    newToken: string,
-    record: ReportRecord,
-  ): Promise<boolean>;
+  getReportByToken(token: string): Promise<ReportRecord | null>;
+  saveRecord(record: ReportRecord): Promise<void>;
+  deleteRecord(id: string): Promise<void>;
+  getReportsByOwner(ownerId: string): Promise<ReportRecord[]>;
+  getAllReports(): Promise<ReportRecord[]>;
 
   // User methods
-  getUserRecord(userId: string): Promise<UserRecord | null>;
-  saveUserRecord(record: UserRecord): Promise<boolean>;
-  getReportRecordsByOwner(ownerId: string): Promise<ReportRecord[]>;
+  getUser(userId: string): Promise<UserRecord | null>;
+  saveUser(record: UserRecord): Promise<void>;
 
   // Session methods
-  getSessionUserId(sessionId: string): Promise<string | null>;
-  saveSessionUserId(sessionId: string, userId: string): Promise<boolean>;
-
-  // User-Report index methods
-  addUserReportIndex(userId: string, reportId: string): Promise<boolean>;
-  removeUserReportIndex(userId: string, reportId: string): Promise<boolean>;
-
-  // Admin methods
-  getAllReportRecords(): Promise<ReportRecord[]>;
+  getSession(sessionId: string): Promise<string | null>;
+  saveSession(sessionId: string, userId: string): Promise<void>;
 
   // Initialize schema (for Turso)
   initSchema?(): Promise<void>;
@@ -44,78 +27,36 @@ export interface Store {
 
 export class MemoryStore implements Store {
   private data = new Map<string, unknown>();
+  private sessions = new Map<string, { userId: string; expiresAt: number }>();
 
   getRecord(id: string): Promise<ReportRecord | null> {
     const record = this.data.get(`reports:${id}`) as ReportRecord | undefined;
     return Promise.resolve(record ?? null);
   }
 
-  getReportIdByToken(token: string): Promise<string | null> {
-    const id = this.data.get(`share_tokens:${token}`) as string | undefined;
-    return Promise.resolve(id ?? null);
+  getReportByToken(token: string): Promise<ReportRecord | null> {
+    for (const [key, value] of this.data.entries()) {
+      if (key.startsWith("reports:")) {
+        const record = value as ReportRecord;
+        if (record.shareToken === token) {
+          return Promise.resolve(record);
+        }
+      }
+    }
+    return Promise.resolve(null);
   }
 
-  saveRecord(record: ReportRecord): Promise<boolean> {
+  saveRecord(record: ReportRecord): Promise<void> {
     this.data.set(`reports:${record.id}`, record);
-    return Promise.resolve(true);
+    return Promise.resolve();
   }
 
-  deleteRecord(id: string): Promise<boolean> {
+  deleteRecord(id: string): Promise<void> {
     this.data.delete(`reports:${id}`);
-    return Promise.resolve(true);
+    return Promise.resolve();
   }
 
-  saveTokenIndex(token: string, id: string): Promise<boolean> {
-    this.data.set(`share_tokens:${token}`, id);
-    return Promise.resolve(true);
-  }
-
-  deleteTokenIndex(token: string): Promise<boolean> {
-    this.data.delete(`share_tokens:${token}`);
-    return Promise.resolve(true);
-  }
-
-  atomicSaveRecordWithToken(
-    record: ReportRecord,
-    token: string,
-    ownerId: string,
-  ): Promise<boolean> {
-    this.data.set(`reports:${record.id}`, record);
-    this.data.set(`share_tokens:${token}`, record.id);
-    this.data.set(`user_reports:${ownerId}:${record.id}`, true);
-    return Promise.resolve(true);
-  }
-
-  atomicDeleteRecordWithToken(id: string, token: string): Promise<boolean> {
-    this.data.delete(`reports:${id}`);
-    this.data.delete(`share_tokens:${token}`);
-    return Promise.resolve(true);
-  }
-
-  atomicUpdateToken(
-    id: string,
-    oldToken: string,
-    newToken: string,
-    record: ReportRecord,
-  ): Promise<boolean> {
-    this.data.delete(`share_tokens:${oldToken}`);
-    this.data.set(`share_tokens:${newToken}`, id);
-    this.data.set(`reports:${id}`, record);
-    return Promise.resolve(true);
-  }
-
-  // User methods
-  getUserRecord(userId: string): Promise<UserRecord | null> {
-    const record = this.data.get(`users:${userId}`) as UserRecord | undefined;
-    return Promise.resolve(record ?? null);
-  }
-
-  saveUserRecord(record: UserRecord): Promise<boolean> {
-    this.data.set(`users:${record.id}`, record);
-    return Promise.resolve(true);
-  }
-
-  getReportRecordsByOwner(ownerId: string): Promise<ReportRecord[]> {
+  getReportsByOwner(ownerId: string): Promise<ReportRecord[]> {
     const reports: ReportRecord[] = [];
     for (const [key, value] of this.data.entries()) {
       if (key.startsWith("reports:")) {
@@ -125,48 +66,52 @@ export class MemoryStore implements Store {
         }
       }
     }
-    // Sort by createdAt descending
     reports.sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     return Promise.resolve(reports);
   }
 
-  // Session methods
-  getSessionUserId(sessionId: string): Promise<string | null> {
-    const userId = this.data.get(`sessions:${sessionId}`) as string | undefined;
-    return Promise.resolve(userId ?? null);
-  }
-
-  saveSessionUserId(sessionId: string, userId: string): Promise<boolean> {
-    this.data.set(`sessions:${sessionId}`, userId);
-    return Promise.resolve(true);
-  }
-
-  // User-Report index methods
-  addUserReportIndex(userId: string, reportId: string): Promise<boolean> {
-    this.data.set(`user_reports:${userId}:${reportId}`, true);
-    return Promise.resolve(true);
-  }
-
-  removeUserReportIndex(userId: string, reportId: string): Promise<boolean> {
-    this.data.delete(`user_reports:${userId}:${reportId}`);
-    return Promise.resolve(true);
-  }
-
-  // Admin methods
-  getAllReportRecords(): Promise<ReportRecord[]> {
+  getAllReports(): Promise<ReportRecord[]> {
     const reports: ReportRecord[] = [];
     for (const [key, value] of this.data.entries()) {
       if (key.startsWith("reports:")) {
         reports.push(value as ReportRecord);
       }
     }
-    // Sort by createdAt descending
     reports.sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     return Promise.resolve(reports);
+  }
+
+  getUser(userId: string): Promise<UserRecord | null> {
+    const record = this.data.get(`users:${userId}`) as UserRecord | undefined;
+    return Promise.resolve(record ?? null);
+  }
+
+  saveUser(record: UserRecord): Promise<void> {
+    this.data.set(`users:${record.id}`, record);
+    return Promise.resolve();
+  }
+
+  getSession(sessionId: string): Promise<string | null> {
+    const session = this.sessions.get(sessionId);
+    if (!session) return Promise.resolve(null);
+    // Check expiry
+    if (Date.now() > session.expiresAt) {
+      this.sessions.delete(sessionId);
+      return Promise.resolve(null);
+    }
+    return Promise.resolve(session.userId);
+  }
+
+  saveSession(sessionId: string, userId: string): Promise<void> {
+    this.sessions.set(sessionId, {
+      userId,
+      expiresAt: Date.now() + SESSION_EXPIRY_MS,
+    });
+    return Promise.resolve();
   }
 }
 
@@ -228,12 +173,13 @@ class TursoStore implements Store {
 
   private parseReportRecord(
     row: Record<string, unknown>,
+    includeData = true,
   ): ReportRecord {
     return {
       id: row.id as string,
       shareToken: row.share_token as string,
       ownerId: row.owner_id as string,
-      data: row.data
+      data: includeData && row.data
         ? JSON.parse(row.data as string) as HierarchicalResult
         : undefined,
       createdAt: row.created_at as string,
@@ -248,30 +194,24 @@ class TursoStore implements Store {
       sql: "SELECT * FROM reports WHERE id = ?",
       args: [id],
     });
-
-    if (result.rows.length === 0) {
-      return null;
-    }
-
+    if (result.rows.length === 0) return null;
     return this.parseReportRecord(
       result.rows[0] as unknown as Record<string, unknown>,
     );
   }
 
-  async getReportIdByToken(token: string): Promise<string | null> {
+  async getReportByToken(token: string): Promise<ReportRecord | null> {
     const result = await this.db.execute({
-      sql: "SELECT id FROM reports WHERE share_token = ?",
+      sql: "SELECT * FROM reports WHERE share_token = ?",
       args: [token],
     });
-
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    return result.rows[0].id as string;
+    if (result.rows.length === 0) return null;
+    return this.parseReportRecord(
+      result.rows[0] as unknown as Record<string, unknown>,
+    );
   }
 
-  async saveRecord(record: ReportRecord): Promise<boolean> {
+  async saveRecord(record: ReportRecord): Promise<void> {
     await this.db.execute({
       sql: `INSERT OR REPLACE INTO reports
             (id, share_token, owner_id, data, created_at, title, share_enabled, comment_count)
@@ -287,93 +227,41 @@ class TursoStore implements Store {
         record.commentCount ?? 0,
       ],
     });
-    return true;
   }
 
-  async deleteRecord(id: string): Promise<boolean> {
+  async deleteRecord(id: string): Promise<void> {
     await this.db.execute({
       sql: "DELETE FROM reports WHERE id = ?",
       args: [id],
     });
-    return true;
   }
 
-  saveTokenIndex(_token: string, _id: string): Promise<boolean> {
-    // Token is stored in reports table, no separate index needed
-    return Promise.resolve(true);
-  }
-
-  deleteTokenIndex(_token: string): Promise<boolean> {
-    // Token is stored in reports table, no separate index needed
-    return Promise.resolve(true);
-  }
-
-  async atomicSaveRecordWithToken(
-    record: ReportRecord,
-    _token: string,
-    _ownerId: string,
-  ): Promise<boolean> {
-    // In Turso, we can use a transaction for atomicity
-    // Token is part of the record, owner_id is also in the record
-    await this.db.execute({
-      sql: `INSERT OR REPLACE INTO reports
-            (id, share_token, owner_id, data, created_at, title, share_enabled, comment_count)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        record.id,
-        record.shareToken,
-        record.ownerId,
-        record.data ? JSON.stringify(record.data) : null,
-        record.createdAt,
-        record.title ?? null,
-        record.shareEnabled ? 1 : 0,
-        record.commentCount ?? 0,
-      ],
+  async getReportsByOwner(ownerId: string): Promise<ReportRecord[]> {
+    const result = await this.db.execute({
+      sql: "SELECT * FROM reports WHERE owner_id = ? ORDER BY created_at DESC",
+      args: [ownerId],
     });
-    return true;
+    return result.rows.map((row) =>
+      this.parseReportRecord(row as unknown as Record<string, unknown>)
+    );
   }
 
-  async atomicDeleteRecordWithToken(
-    id: string,
-    _token: string,
-  ): Promise<boolean> {
-    await this.db.execute({
-      sql: "DELETE FROM reports WHERE id = ?",
-      args: [id],
-    });
-    return true;
+  async getAllReports(): Promise<ReportRecord[]> {
+    // Exclude data for performance (admin list view)
+    const result = await this.db.execute(
+      "SELECT id, share_token, owner_id, created_at, title, share_enabled, comment_count FROM reports ORDER BY created_at DESC",
+    );
+    return result.rows.map((row) =>
+      this.parseReportRecord(row as unknown as Record<string, unknown>, false)
+    );
   }
 
-  async atomicUpdateToken(
-    id: string,
-    _oldToken: string,
-    newToken: string,
-    record: ReportRecord,
-  ): Promise<boolean> {
-    await this.db.execute({
-      sql: `UPDATE reports SET share_token = ?, title = ?, share_enabled = ?
-            WHERE id = ?`,
-      args: [
-        newToken,
-        record.title ?? null,
-        record.shareEnabled ? 1 : 0,
-        id,
-      ],
-    });
-    return true;
-  }
-
-  // User methods
-  async getUserRecord(userId: string): Promise<UserRecord | null> {
+  async getUser(userId: string): Promise<UserRecord | null> {
     const result = await this.db.execute({
       sql: "SELECT * FROM users WHERE id = ?",
       args: [userId],
     });
-
-    if (result.rows.length === 0) {
-      return null;
-    }
-
+    if (result.rows.length === 0) return null;
     const row = result.rows[0] as unknown as Record<string, unknown>;
     return {
       id: row.id as string,
@@ -385,7 +273,7 @@ class TursoStore implements Store {
     };
   }
 
-  async saveUserRecord(record: UserRecord): Promise<boolean> {
+  async saveUser(record: UserRecord): Promise<void> {
     await this.db.execute({
       sql: `INSERT OR REPLACE INTO users
             (id, email, name, picture, created_at, last_login_at)
@@ -399,79 +287,37 @@ class TursoStore implements Store {
         record.lastLoginAt,
       ],
     });
-    return true;
   }
 
-  async getReportRecordsByOwner(ownerId: string): Promise<ReportRecord[]> {
+  async getSession(sessionId: string): Promise<string | null> {
     const result = await this.db.execute({
-      sql: "SELECT * FROM reports WHERE owner_id = ? ORDER BY created_at DESC",
-      args: [ownerId],
-    });
-
-    return result.rows.map((row) =>
-      this.parseReportRecord(row as unknown as Record<string, unknown>)
-    );
-  }
-
-  // Session methods
-  async getSessionUserId(sessionId: string): Promise<string | null> {
-    const result = await this.db.execute({
-      sql: "SELECT user_id FROM sessions WHERE session_id = ?",
+      sql: "SELECT user_id, expires_at FROM sessions WHERE session_id = ?",
       args: [sessionId],
     });
+    if (result.rows.length === 0) return null;
 
-    if (result.rows.length === 0) {
+    const row = result.rows[0] as unknown as Record<string, unknown>;
+    const expiresAt = new Date(row.expires_at as string).getTime();
+
+    // Check expiry
+    if (Date.now() > expiresAt) {
+      // Clean up expired session
+      await this.db.execute({
+        sql: "DELETE FROM sessions WHERE session_id = ?",
+        args: [sessionId],
+      });
       return null;
     }
 
-    return result.rows[0].user_id as string;
+    return row.user_id as string;
   }
 
-  async saveSessionUserId(sessionId: string, userId: string): Promise<boolean> {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      .toISOString(); // 7 days
+  async saveSession(sessionId: string, userId: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS).toISOString();
     await this.db.execute({
       sql: `INSERT OR REPLACE INTO sessions (session_id, user_id, expires_at)
             VALUES (?, ?, ?)`,
       args: [sessionId, userId, expiresAt],
-    });
-    return true;
-  }
-
-  // User-Report index methods (not needed in SQL - we use owner_id column)
-  addUserReportIndex(
-    _userId: string,
-    _reportId: string,
-  ): Promise<boolean> {
-    // Not needed - owner_id is stored in reports table
-    return Promise.resolve(true);
-  }
-
-  removeUserReportIndex(
-    _userId: string,
-    _reportId: string,
-  ): Promise<boolean> {
-    // Not needed - reports are deleted directly
-    return Promise.resolve(true);
-  }
-
-  // Admin methods
-  async getAllReportRecords(): Promise<ReportRecord[]> {
-    const result = await this.db.execute(
-      "SELECT id, share_token, owner_id, created_at, title, share_enabled, comment_count FROM reports ORDER BY created_at DESC",
-    );
-
-    return result.rows.map((row) => {
-      const r = row as unknown as Record<string, unknown>;
-      return {
-        id: r.id as string,
-        shareToken: r.share_token as string,
-        ownerId: r.owner_id as string,
-        createdAt: r.created_at as string,
-        title: r.title as string | undefined,
-        shareEnabled: r.share_enabled === 1,
-        commentCount: r.comment_count as number | undefined,
-      };
     });
   }
 }
