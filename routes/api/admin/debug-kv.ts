@@ -29,10 +29,27 @@ export const handler = define.handlers({
     const userIdFromSession = sessionId
       ? await store.getSessionUserId(sessionId)
       : null;
+
+    // Direct KV read for session
+    const directSessionRead = sessionId
+      ? await kv.get(["sessions", sessionId])
+      : null;
+
+    // Also check user record directly
+    const directUserRead = userIdFromSession
+      ? await kv.get(["users", userIdFromSession])
+      : null;
+
     const authDebug = {
       sessionId: sessionId ? `${sessionId.slice(0, 10)}...` : null,
       userIdFromSession,
       storeType: store.constructor.name,
+      directSessionRead: directSessionRead
+        ? { found: !!directSessionRead.value, value: directSessionRead.value }
+        : null,
+      directUserRead: directUserRead
+        ? { found: !!directUserRead.value, value: directUserRead.value }
+        : null,
     };
 
     // Test write/read
