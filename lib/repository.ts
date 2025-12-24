@@ -54,6 +54,8 @@ export async function createReport(
   const id = crypto.randomUUID();
   const shareToken = nanoid(21);
   const title = extractTitle(data.config);
+  const commentCount = data.comment_num ??
+    Object.keys(data.comments || {}).length;
 
   const record: ReportRecord = {
     id,
@@ -63,6 +65,7 @@ export async function createReport(
     createdAt: new Date().toISOString(),
     title,
     shareEnabled: true,
+    commentCount,
   };
 
   const success = await store.atomicSaveRecordWithToken(
@@ -119,13 +122,6 @@ export async function getAllReportsForAdmin(
     // Get owner info
     const owner = await store.getUserRecord(record.ownerId);
 
-    // Estimate comment count from data if available
-    let commentCount = 0;
-    if (record.data) {
-      commentCount = record.data.comment_num ??
-        Object.keys(record.data.comments || {}).length;
-    }
-
     summaries.push({
       id: record.id,
       title: record.title || DEFAULT_TITLE,
@@ -133,7 +129,7 @@ export async function getAllReportsForAdmin(
       ownerName: owner?.name || "Unknown",
       ownerEmail: owner?.email || "",
       dataSize: record.dataChunks || 1,
-      commentCount,
+      commentCount: record.commentCount ?? 0,
       shareUrl: `/share/${record.shareToken}`,
       shareEnabled: record.shareEnabled,
     });

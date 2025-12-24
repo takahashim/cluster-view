@@ -5,12 +5,14 @@ import LanguageSwitcher from "@/islands/LanguageSwitcher.tsx";
 interface HeaderProps {
   user: User | null;
   showReportsLink?: boolean;
+  isAdmin?: boolean;
   strings: Pick<TranslationsData, "common">;
   locale: Locale;
 }
 
 export default function Header(
-  { user, showReportsLink = true, strings, locale }: HeaderProps,
+  { user, showReportsLink = true, isAdmin = false, strings, locale }:
+    HeaderProps,
 ) {
   const { common } = strings;
 
@@ -61,6 +63,11 @@ export default function Header(
               {showReportsLink && (
                 <a href="/reports" class="btn btn-ghost btn-sm">
                   {common.myReports}
+                </a>
+              )}
+              {isAdmin && (
+                <a href="/admin" class="btn btn-ghost btn-sm">
+                  {common.adminPanel}
                 </a>
               )}
               <div class="flex items-center gap-2">

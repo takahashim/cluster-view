@@ -69,6 +69,7 @@ export interface ReportRecord {
   createdAt: string;
   title?: string;
   shareEnabled: boolean;
+  commentCount?: number; // Stored as metadata for admin view
 }
 
 export interface UserRecord {

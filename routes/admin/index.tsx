@@ -67,6 +67,7 @@ export default define.page<typeof handler>(function AdminPage({ data }) {
         <Header
           user={user}
           showReportsLink
+          isAdmin
           strings={{ common }}
           locale={locale}
         />

@@ -1,6 +1,7 @@
 import { Head } from "fresh/runtime";
 import { define } from "@/utils.ts";
 import { getCurrentUser } from "@/lib/auth.ts";
+import { isAdmin } from "@/lib/admin.ts";
 import { getReportsByOwner, type User } from "@/lib/repository.ts";
 import type { Locale, TranslationsData } from "@/lib/i18n/index.ts";
 import ReportsList from "@/islands/ReportsList.tsx";
@@ -19,6 +20,7 @@ interface PageData {
   reports: ReportSummary[];
   locale: Locale;
   strings: PageStrings;
+  isAdmin: boolean;
 }
 
 export const handler = define.handlers({
@@ -35,6 +37,7 @@ export const handler = define.handlers({
 
     const reports = await getReportsByOwner(user.id);
     const { common, reports: reportsStrings } = ctx.state.translations;
+    const userIsAdmin = isAdmin(user.email);
 
     return {
       data: {
@@ -47,13 +50,15 @@ export const handler = define.handlers({
         })),
         locale: ctx.state.locale,
         strings: { common, reports: reportsStrings },
+        isAdmin: userIsAdmin,
       },
     };
   },
 });
 
 export default define.page<typeof handler>(function ReportsPage({ data }) {
-  const { user, reports, locale, strings } = data as PageData;
+  const { user, reports, locale, strings, isAdmin: userIsAdmin } =
+    data as PageData;
   const { common, reports: reportsStrings } = strings;
 
   return (
@@ -65,6 +70,7 @@ export default define.page<typeof handler>(function ReportsPage({ data }) {
         <Header
           user={user}
           showReportsLink={false}
+          isAdmin={userIsAdmin}
           strings={{ common }}
           locale={locale}
         />
