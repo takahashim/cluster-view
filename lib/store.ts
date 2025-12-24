@@ -37,6 +37,9 @@ export interface Store {
 
   // Admin methods
   getAllReportRecords(): Promise<ReportRecord[]>;
+
+  // Debug method (temporary)
+  getKvInstance?(): Promise<Deno.Kv | null>;
 }
 
 export class MemoryStore implements Store {
@@ -175,6 +178,11 @@ class DenoKvStore implements Store {
       this.kv = await Deno.openKv();
     }
     return this.kv;
+  }
+
+  // Debug method (temporary)
+  async getKvInstance(): Promise<Deno.Kv | null> {
+    return await this.getKv();
   }
 
   // Save data chunks to KV

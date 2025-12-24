@@ -21,8 +21,6 @@ export const handler = define.handlers({
       });
     }
 
-    const kv = await Deno.openKv();
-
     // Debug auth flow
     const sessionId = await getSessionId(ctx.req);
     const store = getStore();
@@ -30,27 +28,34 @@ export const handler = define.handlers({
       ? await store.getSessionUserId(sessionId)
       : null;
 
-    // Direct KV read for session
-    const directSessionRead = sessionId
-      ? await kv.get(["sessions", sessionId])
+    // Get KV instances - both from store and fresh
+    const storeKv = store.getKvInstance ? await store.getKvInstance() : null;
+    const freshKv = await Deno.openKv();
+
+    // Read with store's KV
+    const storeKvSessionRead = storeKv && sessionId
+      ? await storeKv.get(["sessions", sessionId])
       : null;
 
-    // Also check user record directly
-    const directUserRead = userIdFromSession
-      ? await kv.get(["users", userIdFromSession])
+    // Read with fresh KV
+    const freshKvSessionRead = sessionId
+      ? await freshKv.get(["sessions", sessionId])
       : null;
 
     const authDebug = {
       sessionId: sessionId ? `${sessionId.slice(0, 10)}...` : null,
       userIdFromSession,
       storeType: store.constructor.name,
-      directSessionRead: directSessionRead
-        ? { found: !!directSessionRead.value, value: directSessionRead.value }
+      storeKvSessionRead: storeKvSessionRead
+        ? { found: !!storeKvSessionRead.value, value: storeKvSessionRead.value }
+        : "no store kv",
+      freshKvSessionRead: freshKvSessionRead
+        ? { found: !!freshKvSessionRead.value, value: freshKvSessionRead.value }
         : null,
-      directUserRead: directUserRead
-        ? { found: !!directUserRead.value, value: directUserRead.value }
-        : null,
+      kvInstancesAreSame: storeKv === freshKv,
     };
+
+    const kv = freshKv;
 
     // Test write/read
     const testKey = ["_debug_test", "write_check"];
