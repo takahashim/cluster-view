@@ -1,4 +1,4 @@
-import { type Client, createClient } from "@libsql/client";
+import { type Client, createClient } from "@libsql/client/web";
 import type { HierarchicalResult, ReportRecord, UserRecord } from "./types.ts";
 
 export interface Store {
@@ -298,14 +298,14 @@ class TursoStore implements Store {
     return true;
   }
 
-  async saveTokenIndex(_token: string, _id: string): Promise<boolean> {
+  saveTokenIndex(_token: string, _id: string): Promise<boolean> {
     // Token is stored in reports table, no separate index needed
-    return true;
+    return Promise.resolve(true);
   }
 
-  async deleteTokenIndex(_token: string): Promise<boolean> {
+  deleteTokenIndex(_token: string): Promise<boolean> {
     // Token is stored in reports table, no separate index needed
-    return true;
+    return Promise.resolve(true);
   }
 
   async atomicSaveRecordWithToken(
@@ -439,20 +439,20 @@ class TursoStore implements Store {
   }
 
   // User-Report index methods (not needed in SQL - we use owner_id column)
-  async addUserReportIndex(
+  addUserReportIndex(
     _userId: string,
     _reportId: string,
   ): Promise<boolean> {
     // Not needed - owner_id is stored in reports table
-    return true;
+    return Promise.resolve(true);
   }
 
-  async removeUserReportIndex(
+  removeUserReportIndex(
     _userId: string,
     _reportId: string,
   ): Promise<boolean> {
     // Not needed - reports are deleted directly
-    return true;
+    return Promise.resolve(true);
   }
 
   // Admin methods

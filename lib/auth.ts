@@ -1,112 +1,200 @@
-/// <reference lib="deno.unstable" />
+import { Google } from "arctic";
 import { getUser, type User } from "./repository.ts";
 import { getStore } from "./store.ts";
 
-// Check if Deno KV is available at runtime (not at build time)
-// Note: This is used by @deno/kv-oauth which requires Deno KV for session storage.
-// This will be removed in Phase 2 when we migrate to Arctic.
-function isKvAvailable(): boolean {
-  return typeof Deno !== "undefined" && typeof Deno.openKv === "function";
+// Session cookie name
+const SESSION_COOKIE_NAME = "session";
+const OAUTH_STATE_COOKIE_NAME = "oauth_state";
+const OAUTH_VERIFIER_COOKIE_NAME = "oauth_code_verifier";
+
+// Session expiry: 7 days
+const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Google OAuth client
+const google = new Google(
+  Deno.env.get("GOOGLE_CLIENT_ID") ?? "",
+  Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "",
+  Deno.env.get("OAUTH_REDIRECT_URI") ??
+    "http://localhost:8000/api/auth/google/callback",
+);
+
+// Generate a random session ID
+function generateSessionId(): string {
+  return crypto.randomUUID();
 }
 
-// Lazy-loaded OAuth helpers
-let _signIn: ((request: Request) => Promise<Response>) | null = null;
-let _handleCallback:
-  | ((request: Request) => Promise<{
-    response: Response;
-    sessionId?: string;
-    tokens?: { accessToken: string };
-  }>)
-  | null = null;
-let _signOut: ((request: Request) => Promise<Response>) | null = null;
-let _getSessionId: ((request: Request) => Promise<string | undefined>) | null =
-  null;
-
-async function initOAuth() {
-  if (!isKvAvailable()) {
-    console.warn("[Auth] Deno KV not available, OAuth disabled");
-    return;
+// Parse cookies from request
+function parseCookies(request: Request): Map<string, string> {
+  const cookies = new Map<string, string>();
+  const cookieHeader = request.headers.get("Cookie");
+  if (cookieHeader) {
+    for (const pair of cookieHeader.split(";")) {
+      const [name, ...rest] = pair.trim().split("=");
+      if (name && rest.length > 0) {
+        cookies.set(name, rest.join("="));
+      }
+    }
   }
+  return cookies;
+}
 
+// Create a Set-Cookie header value
+function createCookie(
+  name: string,
+  value: string,
+  options: {
+    maxAge?: number;
+    path?: string;
+    httpOnly?: boolean;
+    secure?: boolean;
+    sameSite?: "Strict" | "Lax" | "None";
+  } = {},
+): string {
+  const parts = [`${name}=${value}`];
+
+  if (options.maxAge !== undefined) {
+    parts.push(`Max-Age=${options.maxAge}`);
+  }
+  parts.push(`Path=${options.path || "/"}`);
+  if (options.httpOnly !== false) {
+    parts.push("HttpOnly");
+  }
+  if (options.secure !== false && Deno.env.get("DENO_DEPLOYMENT_ID")) {
+    parts.push("Secure");
+  }
+  parts.push(`SameSite=${options.sameSite || "Lax"}`);
+
+  return parts.join("; ");
+}
+
+// Create a cookie that deletes itself
+function deleteCookie(name: string): string {
+  return createCookie(name, "", { maxAge: 0 });
+}
+
+// Start OAuth sign-in flow
+export function signIn(_request: Request): Response {
   try {
-    const { createGoogleOAuthConfig, createHelpers, getSessionId } =
-      await import("@deno/kv-oauth");
+    const state = crypto.randomUUID();
+    const codeVerifier = crypto.randomUUID();
 
-    const oauthConfig = createGoogleOAuthConfig({
-      redirectUri: Deno.env.get("OAUTH_REDIRECT_URI") ||
-        "http://localhost:8000/api/auth/google/callback",
-      scope: [
-        "openid",
-        "https://www.googleapis.com/auth/userinfo.email",
-        "https://www.googleapis.com/auth/userinfo.profile",
-      ],
+    const scopes = [
+      "openid",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
+    ];
+
+    const url = google.createAuthorizationURL(state, codeVerifier, scopes);
+
+    const headers = new Headers();
+    headers.set("Location", url.toString());
+    headers.append(
+      "Set-Cookie",
+      createCookie(OAUTH_STATE_COOKIE_NAME, state, {
+        maxAge: 600, // 10 minutes
+        httpOnly: true,
+      }),
+    );
+    headers.append(
+      "Set-Cookie",
+      createCookie(OAUTH_VERIFIER_COOKIE_NAME, codeVerifier, {
+        maxAge: 600,
+        httpOnly: true,
+      }),
+    );
+
+    return new Response(null, {
+      status: 302,
+      headers,
     });
-
-    const helpers = createHelpers(oauthConfig);
-    _signIn = helpers.signIn;
-    _handleCallback = helpers.handleCallback;
-    _signOut = helpers.signOut;
-    _getSessionId = getSessionId;
   } catch (error) {
-    console.error("[Auth] Failed to initialize OAuth:", error);
+    console.error("[Auth] Sign in error:", error);
+    return new Response("OAuth not configured", { status: 503 });
   }
 }
 
-// Initialize OAuth on first use
-let initPromise: Promise<void> | null = null;
-async function ensureInitialized() {
-  if (!initPromise) {
-    initPromise = initOAuth();
-  }
-  await initPromise;
-}
-
-// Exported OAuth functions with lazy initialization
-export async function signIn(request: Request): Promise<Response> {
-  await ensureInitialized();
-  if (!_signIn) {
-    return new Response("OAuth not available in development mode", {
-      status: 503,
-    });
-  }
-  return _signIn(request);
-}
-
+// Handle OAuth callback
 export async function handleCallback(request: Request): Promise<{
   response: Response;
   sessionId?: string;
   tokens?: { accessToken: string };
 }> {
-  await ensureInitialized();
-  if (!_handleCallback) {
-    return {
-      response: new Response("OAuth not available in development mode", {
-        status: 503,
+  try {
+    const url = new URL(request.url);
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+
+    const cookies = parseCookies(request);
+    const storedState = cookies.get(OAUTH_STATE_COOKIE_NAME);
+    const codeVerifier = cookies.get(OAUTH_VERIFIER_COOKIE_NAME);
+
+    // Validate state
+    if (!code || !state || !storedState || state !== storedState) {
+      return {
+        response: new Response("Invalid OAuth state", { status: 400 }),
+      };
+    }
+
+    if (!codeVerifier) {
+      return {
+        response: new Response("Missing code verifier", { status: 400 }),
+      };
+    }
+
+    // Exchange code for tokens
+    const tokens = await google.validateAuthorizationCode(code, codeVerifier);
+    const accessToken = tokens.accessToken();
+
+    // Create session
+    const sessionId = generateSessionId();
+
+    // Clear OAuth cookies in the response
+    const headers = new Headers();
+    headers.append("Set-Cookie", deleteCookie(OAUTH_STATE_COOKIE_NAME));
+    headers.append("Set-Cookie", deleteCookie(OAUTH_VERIFIER_COOKIE_NAME));
+    headers.append(
+      "Set-Cookie",
+      createCookie(SESSION_COOKIE_NAME, sessionId, {
+        maxAge: SESSION_EXPIRY_MS / 1000,
+        httpOnly: true,
       }),
+    );
+    headers.set("Location", "/");
+
+    return {
+      response: new Response(null, {
+        status: 302,
+        headers,
+      }),
+      sessionId,
+      tokens: { accessToken },
+    };
+  } catch (error) {
+    console.error("[Auth] Callback error:", error);
+    return {
+      response: new Response("OAuth callback failed", { status: 500 }),
     };
   }
-  return _handleCallback(request);
 }
 
-export async function signOut(request: Request): Promise<Response> {
-  await ensureInitialized();
-  if (!_signOut) {
-    return new Response(null, {
-      status: 302,
-      headers: { Location: "/" },
-    });
-  }
-  return _signOut(request);
+// Sign out
+export function signOut(_request: Request): Response {
+  // Session will expire naturally in the database
+  // Just clear the cookie to log out the user
+  const headers = new Headers();
+  headers.append("Set-Cookie", deleteCookie(SESSION_COOKIE_NAME));
+  headers.set("Location", "/");
+
+  return new Response(null, {
+    status: 302,
+    headers,
+  });
 }
 
-export async function getSessionId(
-  request: Request,
-): Promise<string | undefined> {
-  await ensureInitialized();
-  if (!_getSessionId) {
-    return undefined;
-  }
-  return _getSessionId(request);
+// Get session ID from request
+export function getSessionId(request: Request): string | undefined {
+  const cookies = parseCookies(request);
+  return cookies.get(SESSION_COOKIE_NAME);
 }
 
 // Fetch Google user info from access token
@@ -128,7 +216,7 @@ export async function getGoogleUserInfo(accessToken: string): Promise<{
 
 // Get current user from session (returns User domain entity)
 export async function getCurrentUser(request: Request): Promise<User | null> {
-  const sessionId = await getSessionId(request);
+  const sessionId = getSessionId(request);
   if (!sessionId) return null;
 
   const store = getStore();
