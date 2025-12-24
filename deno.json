@@ -20,7 +20,9 @@
     }
   },
   "exclude": [
-    "**/_fresh/*"
+    "**/_fresh/*",
+    ".wrangler/**",
+    "dist/**"
   ],
   "imports": {
     "@/": "./",
