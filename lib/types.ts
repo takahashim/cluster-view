@@ -64,8 +64,7 @@ export interface ReportRecord {
   id: string;
   shareToken: string;
   ownerId: string;
-  data?: HierarchicalResult; // For MemoryStore
-  dataChunks?: number; // Number of chunks for KV storage
+  data?: HierarchicalResult;
   createdAt: string;
   title?: string;
   shareEnabled: boolean;

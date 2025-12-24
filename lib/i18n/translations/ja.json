@@ -104,13 +104,11 @@
       "title": "タイトル",
       "createdAt": "作成日時",
       "owner": "オーナー",
-      "dataSize": "データサイズ",
       "commentCount": "コメント数",
       "shareUrl": "共有URL",
       "status": "状態"
     },
     "enabled": "公開中",
-    "disabled": "非公開",
-    "chunks": "チャンク"
+    "disabled": "非公開"
   }
 }

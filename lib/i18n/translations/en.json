@@ -104,13 +104,11 @@
       "title": "Title",
       "createdAt": "Created At",
       "owner": "Owner",
-      "dataSize": "Data Size",
       "commentCount": "Comments",
       "shareUrl": "Share URL",
       "status": "Status"
     },
     "enabled": "Enabled",
-    "disabled": "Disabled",
-    "chunks": "chunks"
+    "disabled": "Disabled"
   }
 }

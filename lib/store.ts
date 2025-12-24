@@ -1,5 +1,5 @@
+import { type Client, createClient } from "@libsql/client";
 import type { HierarchicalResult, ReportRecord, UserRecord } from "./types.ts";
-import { DEFAULT_CHUNK_SIZE, joinChunks, splitIntoChunks } from "./chunk.ts";
 
 export interface Store {
   // Report methods
@@ -38,8 +38,8 @@ export interface Store {
   // Admin methods
   getAllReportRecords(): Promise<ReportRecord[]>;
 
-  // Debug method (temporary)
-  getKvInstance?(): Promise<Deno.Kv | null>;
+  // Initialize schema (for Turso)
+  initSchema?(): Promise<void>;
 }
 
 export class MemoryStore implements Store {
@@ -170,286 +170,340 @@ export class MemoryStore implements Store {
   }
 }
 
-// Global KV instance to ensure consistency across all code paths
-let globalKv: Deno.Kv | null = null;
+// Global Turso client instance
+let tursoClient: Client | null = null;
 
-async function getGlobalKv(): Promise<Deno.Kv> {
-  if (!globalKv) {
-    globalKv = await Deno.openKv();
+function getTursoClient(): Client {
+  if (!tursoClient) {
+    const url = Deno.env.get("TURSO_DATABASE_URL");
+    const authToken = Deno.env.get("TURSO_AUTH_TOKEN");
+
+    if (!url) {
+      throw new Error("TURSO_DATABASE_URL environment variable is required");
+    }
+
+    tursoClient = createClient({
+      url,
+      authToken,
+    });
   }
-  return globalKv;
+  return tursoClient;
 }
 
-class DenoKvStore implements Store {
-  private async getKv(): Promise<Deno.Kv> {
-    return await getGlobalKv();
+class TursoStore implements Store {
+  private get db(): Client {
+    return getTursoClient();
   }
 
-  // Debug method (temporary)
-  async getKvInstance(): Promise<Deno.Kv | null> {
-    return await this.getKv();
+  async initSchema(): Promise<void> {
+    await this.db.batch([
+      `CREATE TABLE IF NOT EXISTS reports (
+        id TEXT PRIMARY KEY,
+        share_token TEXT UNIQUE NOT NULL,
+        owner_id TEXT NOT NULL,
+        data TEXT,
+        created_at TEXT NOT NULL,
+        title TEXT,
+        share_enabled INTEGER DEFAULT 1,
+        comment_count INTEGER DEFAULT 0
+      )`,
+      `CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        picture TEXT,
+        created_at TEXT NOT NULL,
+        last_login_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS sessions (
+        session_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_reports_owner_id ON reports(owner_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_reports_share_token ON reports(share_token)`,
+      `CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)`,
+    ]);
   }
 
-  // Save data chunks to KV
-  private async saveDataChunks(
-    id: string,
-    data: HierarchicalResult,
-  ): Promise<number> {
-    const kv = await this.getKv();
-    const jsonStr = JSON.stringify(data);
-    const chunks = splitIntoChunks(jsonStr, DEFAULT_CHUNK_SIZE);
-
-    for (let i = 0; i < chunks.length; i++) {
-      await kv.set(["report_data", id, i], chunks[i]);
-    }
-
-    return chunks.length;
-  }
-
-  // Load and join data chunks from KV
-  private async loadDataChunks(
-    id: string,
-    chunkCount: number,
-  ): Promise<HierarchicalResult | null> {
-    const kv = await this.getKv();
-
-    // Build keys for all chunks
-    const keys: Deno.KvKey[] = [];
-    for (let i = 0; i < chunkCount; i++) {
-      keys.push(["report_data", id, i]);
-    }
-
-    // Fetch all chunks in parallel
-    const results = await kv.getMany<string[]>(keys);
-    const chunks: string[] = [];
-
-    for (const result of results) {
-      if (result.value === null) {
-        return null; // Missing chunk
-      }
-      chunks.push(result.value);
-    }
-
-    // Join and parse
-    const jsonStr = joinChunks(chunks);
-    return JSON.parse(jsonStr);
-  }
-
-  // Delete all data chunks
-  private async deleteDataChunks(
-    id: string,
-    chunkCount: number,
-  ): Promise<void> {
-    const kv = await this.getKv();
-
-    for (let i = 0; i < chunkCount; i++) {
-      await kv.delete(["report_data", id, i]);
-    }
+  private parseReportRecord(
+    row: Record<string, unknown>,
+  ): ReportRecord {
+    return {
+      id: row.id as string,
+      shareToken: row.share_token as string,
+      ownerId: row.owner_id as string,
+      data: row.data
+        ? JSON.parse(row.data as string) as HierarchicalResult
+        : undefined,
+      createdAt: row.created_at as string,
+      title: row.title as string | undefined,
+      shareEnabled: row.share_enabled === 1,
+      commentCount: row.comment_count as number | undefined,
+    };
   }
 
   async getRecord(id: string): Promise<ReportRecord | null> {
-    const kv = await this.getKv();
-    const result = await kv.get<ReportRecord>(["reports", id]);
-    if (!result.value) return null;
+    const result = await this.db.execute({
+      sql: "SELECT * FROM reports WHERE id = ?",
+      args: [id],
+    });
 
-    const record = result.value;
-
-    // Load data from chunks if dataChunks exists
-    if (record.dataChunks && !record.data) {
-      const data = await this.loadDataChunks(id, record.dataChunks);
-      if (data) {
-        record.data = data;
-      }
+    if (result.rows.length === 0) {
+      return null;
     }
 
-    return record;
+    return this.parseReportRecord(
+      result.rows[0] as unknown as Record<string, unknown>,
+    );
   }
 
   async getReportIdByToken(token: string): Promise<string | null> {
-    const kv = await this.getKv();
-    const result = await kv.get<string>(["share_tokens", token]);
-    return result.value;
+    const result = await this.db.execute({
+      sql: "SELECT id FROM reports WHERE share_token = ?",
+      args: [token],
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0].id as string;
   }
 
   async saveRecord(record: ReportRecord): Promise<boolean> {
-    const kv = await this.getKv();
-    const result = await kv.set(["reports", record.id], record);
-    return result.ok;
-  }
-
-  async deleteRecord(id: string): Promise<boolean> {
-    const kv = await this.getKv();
-    await kv.delete(["reports", id]);
+    await this.db.execute({
+      sql: `INSERT OR REPLACE INTO reports
+            (id, share_token, owner_id, data, created_at, title, share_enabled, comment_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        record.id,
+        record.shareToken,
+        record.ownerId,
+        record.data ? JSON.stringify(record.data) : null,
+        record.createdAt,
+        record.title ?? null,
+        record.shareEnabled ? 1 : 0,
+        record.commentCount ?? 0,
+      ],
+    });
     return true;
   }
 
-  async saveTokenIndex(token: string, id: string): Promise<boolean> {
-    const kv = await this.getKv();
-    const result = await kv.set(["share_tokens", token], id);
-    return result.ok;
+  async deleteRecord(id: string): Promise<boolean> {
+    await this.db.execute({
+      sql: "DELETE FROM reports WHERE id = ?",
+      args: [id],
+    });
+    return true;
   }
 
-  async deleteTokenIndex(token: string): Promise<boolean> {
-    const kv = await this.getKv();
-    await kv.delete(["share_tokens", token]);
+  async saveTokenIndex(_token: string, _id: string): Promise<boolean> {
+    // Token is stored in reports table, no separate index needed
+    return true;
+  }
+
+  async deleteTokenIndex(_token: string): Promise<boolean> {
+    // Token is stored in reports table, no separate index needed
     return true;
   }
 
   async atomicSaveRecordWithToken(
     record: ReportRecord,
-    token: string,
-    ownerId: string,
+    _token: string,
+    _ownerId: string,
   ): Promise<boolean> {
-    const kv = await this.getKv();
-
-    // Save data as chunks and store only metadata in main record
-    let kvRecord: ReportRecord;
-    if (record.data) {
-      const dataChunks = await this.saveDataChunks(record.id, record.data);
-      kvRecord = { ...record, data: undefined, dataChunks };
-    } else {
-      kvRecord = record;
-    }
-
-    // Use atomic transaction for metadata, token index, and user index
-    const result = await kv.atomic()
-      .set(["reports", record.id], kvRecord)
-      .set(["share_tokens", token], record.id)
-      .set(["user_reports", ownerId, record.id], true)
-      .commit();
-
-    return result.ok;
+    // In Turso, we can use a transaction for atomicity
+    // Token is part of the record, owner_id is also in the record
+    await this.db.execute({
+      sql: `INSERT OR REPLACE INTO reports
+            (id, share_token, owner_id, data, created_at, title, share_enabled, comment_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        record.id,
+        record.shareToken,
+        record.ownerId,
+        record.data ? JSON.stringify(record.data) : null,
+        record.createdAt,
+        record.title ?? null,
+        record.shareEnabled ? 1 : 0,
+        record.commentCount ?? 0,
+      ],
+    });
+    return true;
   }
 
   async atomicDeleteRecordWithToken(
     id: string,
-    token: string,
+    _token: string,
   ): Promise<boolean> {
-    const kv = await this.getKv();
-
-    // Get record to find chunk count
-    const result = await kv.get<ReportRecord>(["reports", id]);
-    if (result.value?.dataChunks) {
-      await this.deleteDataChunks(id, result.value.dataChunks);
-    }
-
-    // Delete metadata and token index
-    await kv.delete(["reports", id]);
-    await kv.delete(["share_tokens", token]);
-
+    await this.db.execute({
+      sql: "DELETE FROM reports WHERE id = ?",
+      args: [id],
+    });
     return true;
   }
 
   async atomicUpdateToken(
     id: string,
-    oldToken: string,
+    _oldToken: string,
     newToken: string,
     record: ReportRecord,
   ): Promise<boolean> {
-    const kv = await this.getKv();
-
-    await kv.delete(["share_tokens", oldToken]);
-    await kv.set(["share_tokens", newToken], id);
-    await kv.set(["reports", id], record);
-
+    await this.db.execute({
+      sql: `UPDATE reports SET share_token = ?, title = ?, share_enabled = ?
+            WHERE id = ?`,
+      args: [
+        newToken,
+        record.title ?? null,
+        record.shareEnabled ? 1 : 0,
+        id,
+      ],
+    });
     return true;
   }
 
   // User methods
   async getUserRecord(userId: string): Promise<UserRecord | null> {
-    const kv = await this.getKv();
-    const result = await kv.get<UserRecord>(["users", userId]);
-    return result.value;
+    const result = await this.db.execute({
+      sql: "SELECT * FROM users WHERE id = ?",
+      args: [userId],
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0] as unknown as Record<string, unknown>;
+    return {
+      id: row.id as string,
+      email: row.email as string,
+      name: row.name as string,
+      picture: row.picture as string | undefined,
+      createdAt: row.created_at as string,
+      lastLoginAt: row.last_login_at as string,
+    };
   }
 
   async saveUserRecord(record: UserRecord): Promise<boolean> {
-    const kv = await this.getKv();
-    const result = await kv.set(["users", record.id], record);
-    return result.ok;
+    await this.db.execute({
+      sql: `INSERT OR REPLACE INTO users
+            (id, email, name, picture, created_at, last_login_at)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [
+        record.id,
+        record.email,
+        record.name,
+        record.picture ?? null,
+        record.createdAt,
+        record.lastLoginAt,
+      ],
+    });
+    return true;
   }
 
   async getReportRecordsByOwner(ownerId: string): Promise<ReportRecord[]> {
-    const kv = await this.getKv();
-    const reports: ReportRecord[] = [];
+    const result = await this.db.execute({
+      sql: "SELECT * FROM reports WHERE owner_id = ? ORDER BY created_at DESC",
+      args: [ownerId],
+    });
 
-    // Use user_reports index to get report IDs
-    const iter = kv.list<boolean>({ prefix: ["user_reports", ownerId] });
-    for await (const entry of iter) {
-      const reportId = entry.key[2] as string;
-      // Use getRecord to properly load data from chunks
-      const record = await this.getRecord(reportId);
-      if (record) {
-        reports.push(record);
-      }
-    }
-
-    // Sort by createdAt descending
-    reports.sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return result.rows.map((row) =>
+      this.parseReportRecord(row as unknown as Record<string, unknown>)
     );
-    return reports;
   }
 
   // Session methods
   async getSessionUserId(sessionId: string): Promise<string | null> {
-    const kv = await this.getKv();
-    const result = await kv.get<string>(["sessions", sessionId]);
-    return result.value;
+    const result = await this.db.execute({
+      sql: "SELECT user_id FROM sessions WHERE session_id = ?",
+      args: [sessionId],
+    });
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0].user_id as string;
   }
 
   async saveSessionUserId(sessionId: string, userId: string): Promise<boolean> {
-    const kv = await this.getKv();
-    const result = await kv.set(["sessions", sessionId], userId);
-    return result.ok;
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString(); // 7 days
+    await this.db.execute({
+      sql: `INSERT OR REPLACE INTO sessions (session_id, user_id, expires_at)
+            VALUES (?, ?, ?)`,
+      args: [sessionId, userId, expiresAt],
+    });
+    return true;
   }
 
-  // User-Report index methods
+  // User-Report index methods (not needed in SQL - we use owner_id column)
   async addUserReportIndex(
-    userId: string,
-    reportId: string,
+    _userId: string,
+    _reportId: string,
   ): Promise<boolean> {
-    const kv = await this.getKv();
-    const result = await kv.set(["user_reports", userId, reportId], true);
-    return result.ok;
+    // Not needed - owner_id is stored in reports table
+    return true;
   }
 
   async removeUserReportIndex(
-    userId: string,
-    reportId: string,
+    _userId: string,
+    _reportId: string,
   ): Promise<boolean> {
-    const kv = await this.getKv();
-    await kv.delete(["user_reports", userId, reportId]);
+    // Not needed - reports are deleted directly
     return true;
   }
 
   // Admin methods
   async getAllReportRecords(): Promise<ReportRecord[]> {
-    const kv = await this.getKv();
-    const reports: ReportRecord[] = [];
-
-    // List all reports (metadata only, without loading data chunks)
-    const iter = kv.list<ReportRecord>({ prefix: ["reports"] });
-    for await (const entry of iter) {
-      reports.push(entry.value);
-    }
-
-    // Sort by createdAt descending
-    reports.sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    const result = await this.db.execute(
+      "SELECT id, share_token, owner_id, created_at, title, share_enabled, comment_count FROM reports ORDER BY created_at DESC",
     );
-    return reports;
+
+    return result.rows.map((row) => {
+      const r = row as unknown as Record<string, unknown>;
+      return {
+        id: r.id as string,
+        shareToken: r.share_token as string,
+        ownerId: r.owner_id as string,
+        createdAt: r.created_at as string,
+        title: r.title as string | undefined,
+        shareEnabled: r.share_enabled === 1,
+        commentCount: r.comment_count as number | undefined,
+      };
+    });
   }
 }
 
-function isDenoKvAvailable(): boolean {
-  return typeof Deno !== "undefined" && typeof Deno.openKv === "function";
+function isTursoConfigured(): boolean {
+  return !!Deno.env.get("TURSO_DATABASE_URL");
 }
 
 let storeInstance: Store | null = null;
+let schemaInitialized = false;
 
 export function getStore(): Store {
   if (!storeInstance) {
-    storeInstance = isDenoKvAvailable() ? new DenoKvStore() : new MemoryStore();
+    if (isTursoConfigured()) {
+      storeInstance = new TursoStore();
+    } else {
+      console.warn(
+        "TURSO_DATABASE_URL not set, using MemoryStore (data will not persist)",
+      );
+      storeInstance = new MemoryStore();
+    }
   }
   return storeInstance;
+}
+
+// Initialize schema on first use
+export async function initializeStore(): Promise<void> {
+  if (schemaInitialized) return;
+
+  const store = getStore();
+  if (store.initSchema) {
+    await store.initSchema();
+  }
+  schemaInitialized = true;
 }

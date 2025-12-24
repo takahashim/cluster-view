@@ -106,7 +106,6 @@ export interface AdminReportSummary {
   createdAt: string;
   ownerName: string;
   ownerEmail: string;
-  dataSize: number;
   commentCount: number;
   shareUrl: string;
   shareEnabled: boolean;
@@ -128,7 +127,6 @@ export async function getAllReportsForAdmin(
       createdAt: record.createdAt,
       ownerName: owner?.name || "Unknown",
       ownerEmail: owner?.email || "",
-      dataSize: record.dataChunks || 1,
       commentCount: record.commentCount ?? 0,
       shareUrl: `/share/${record.shareToken}`,
       shareEnabled: record.shareEnabled,

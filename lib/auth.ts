@@ -1,7 +1,10 @@
+/// <reference lib="deno.unstable" />
 import { getUser, type User } from "./repository.ts";
 import { getStore } from "./store.ts";
 
 // Check if Deno KV is available at runtime (not at build time)
+// Note: This is used by @deno/kv-oauth which requires Deno KV for session storage.
+// This will be removed in Phase 2 when we migrate to Arctic.
 function isKvAvailable(): boolean {
   return typeof Deno !== "undefined" && typeof Deno.openKv === "function";
 }

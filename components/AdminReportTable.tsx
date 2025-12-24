@@ -39,7 +39,6 @@ export default function AdminReportTable(
             <th>{admin.columns.owner}</th>
             <th>{admin.columns.createdAt}</th>
             <th class="text-right">{admin.columns.commentCount}</th>
-            <th class="text-right">{admin.columns.dataSize}</th>
             <th>{admin.columns.status}</th>
             <th>{admin.columns.shareUrl}</th>
           </tr>
@@ -65,9 +64,6 @@ export default function AdminReportTable(
                 )}
               </td>
               <td class="text-right">{report.commentCount}</td>
-              <td class="text-right text-sm text-base-content/60">
-                {report.dataSize} {admin.chunks}
-              </td>
               <td>
                 {report.shareEnabled
                   ? (
