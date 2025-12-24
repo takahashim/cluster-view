@@ -95,7 +95,52 @@ export async function getReportByToken(
   return toReport(record);
 }
 
-// Admin operations (future use)
+// Admin operations
+
+export interface AdminReportSummary {
+  id: string;
+  title: string;
+  createdAt: string;
+  ownerName: string;
+  ownerEmail: string;
+  dataSize: number;
+  commentCount: number;
+  shareUrl: string;
+  shareEnabled: boolean;
+}
+
+export async function getAllReportsForAdmin(
+  store: Store = getStore(),
+): Promise<AdminReportSummary[]> {
+  const records = await store.getAllReportRecords();
+  const summaries: AdminReportSummary[] = [];
+
+  for (const record of records) {
+    // Get owner info
+    const owner = await store.getUserRecord(record.ownerId);
+
+    // Estimate comment count from data if available
+    let commentCount = 0;
+    if (record.data) {
+      commentCount = record.data.comment_num ??
+        Object.keys(record.data.comments || {}).length;
+    }
+
+    summaries.push({
+      id: record.id,
+      title: record.title || DEFAULT_TITLE,
+      createdAt: record.createdAt,
+      ownerName: owner?.name || "Unknown",
+      ownerEmail: owner?.email || "",
+      dataSize: record.dataChunks || 1,
+      commentCount,
+      shareUrl: `/share/${record.shareToken}`,
+      shareEnabled: record.shareEnabled,
+    });
+  }
+
+  return summaries;
+}
 
 export async function regenerateShareToken(
   id: string,

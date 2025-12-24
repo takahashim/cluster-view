@@ -34,6 +34,9 @@ export interface Store {
   // User-Report index methods
   addUserReportIndex(userId: string, reportId: string): Promise<boolean>;
   removeUserReportIndex(userId: string, reportId: string): Promise<boolean>;
+
+  // Admin methods
+  getAllReportRecords(): Promise<ReportRecord[]>;
 }
 
 export class MemoryStore implements Store {
@@ -146,6 +149,21 @@ export class MemoryStore implements Store {
   removeUserReportIndex(userId: string, reportId: string): Promise<boolean> {
     this.data.delete(`user_reports:${userId}:${reportId}`);
     return Promise.resolve(true);
+  }
+
+  // Admin methods
+  getAllReportRecords(): Promise<ReportRecord[]> {
+    const reports: ReportRecord[] = [];
+    for (const [key, value] of this.data.entries()) {
+      if (key.startsWith("reports:")) {
+        reports.push(value as ReportRecord);
+      }
+    }
+    // Sort by createdAt descending
+    reports.sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    return Promise.resolve(reports);
   }
 }
 
@@ -389,6 +407,24 @@ class DenoKvStore implements Store {
     const kv = await this.getKv();
     await kv.delete(["user_reports", userId, reportId]);
     return true;
+  }
+
+  // Admin methods
+  async getAllReportRecords(): Promise<ReportRecord[]> {
+    const kv = await this.getKv();
+    const reports: ReportRecord[] = [];
+
+    // List all reports (metadata only, without loading data chunks)
+    const iter = kv.list<ReportRecord>({ prefix: ["reports"] });
+    for await (const entry of iter) {
+      reports.push(entry.value);
+    }
+
+    // Sort by createdAt descending
+    reports.sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    return reports;
   }
 }
 

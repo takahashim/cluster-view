@@ -93,5 +93,23 @@
       "includeEmpty": "空の値を含める",
       "noFilterData": "このデータには密度情報や属性データがありません。テキスト検索のみ利用可能です。"
     }
+  },
+  "admin": {
+    "pageTitle": "管理画面 - Cluster View",
+    "title": "管理画面",
+    "reportList": "全レポート一覧",
+    "noReports": "レポートがありません",
+    "columns": {
+      "title": "タイトル",
+      "createdAt": "作成日時",
+      "owner": "オーナー",
+      "dataSize": "データサイズ",
+      "commentCount": "コメント数",
+      "shareUrl": "共有URL",
+      "status": "状態"
+    },
+    "enabled": "公開中",
+    "disabled": "非公開",
+    "chunks": "チャンク"
   }
 }

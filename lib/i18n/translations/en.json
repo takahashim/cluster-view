@@ -93,5 +93,23 @@
       "includeEmpty": "Include empty values",
       "noFilterData": "This data has no density or attribute data. Only text search is available."
     }
+  },
+  "admin": {
+    "pageTitle": "Admin - Cluster View",
+    "title": "Admin Panel",
+    "reportList": "All Reports",
+    "noReports": "No reports",
+    "columns": {
+      "title": "Title",
+      "createdAt": "Created At",
+      "owner": "Owner",
+      "dataSize": "Data Size",
+      "commentCount": "Comments",
+      "shareUrl": "Share URL",
+      "status": "Status"
+    },
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "chunks": "chunks"
   }
 }
