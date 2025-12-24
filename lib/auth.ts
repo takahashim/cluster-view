@@ -1,6 +1,7 @@
 import { Google } from "arctic";
 import { getUser, type User } from "./repository.ts";
 import { getStore, SESSION_EXPIRY_MS } from "./store.ts";
+import { getEnv } from "./env.ts";
 
 // Cookie names
 const SESSION_COOKIE_NAME = "session";
@@ -10,20 +11,28 @@ const OAUTH_VERIFIER_COOKIE_NAME = "oauth_code_verifier";
 // Check if running in production (works on Deno Deploy, Cloudflare Workers, etc.)
 function isProduction(): boolean {
   // Deno Deploy
-  if (Deno.env.get("DENO_DEPLOYMENT_ID")) return true;
+  if (getEnv("DENO_DEPLOYMENT_ID")) return true;
   // Cloudflare Workers / generic production flag
-  if (Deno.env.get("NODE_ENV") === "production") return true;
-  if (Deno.env.get("PRODUCTION") === "true") return true;
+  if (getEnv("CF_PAGES") || getEnv("CF_WORKER")) return true;
+  if (getEnv("NODE_ENV") === "production") return true;
+  if (getEnv("PRODUCTION") === "true") return true;
   return false;
 }
 
-// Google OAuth client
-const google = new Google(
-  Deno.env.get("GOOGLE_CLIENT_ID") ?? "",
-  Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "",
-  Deno.env.get("OAUTH_REDIRECT_URI") ??
-    "http://localhost:8000/api/auth/google/callback",
-);
+// Google OAuth client (lazy initialization for Cloudflare Workers compatibility)
+let google: Google | null = null;
+
+function getGoogleClient(): Google {
+  if (!google) {
+    google = new Google(
+      getEnv("GOOGLE_CLIENT_ID") ?? "",
+      getEnv("GOOGLE_CLIENT_SECRET") ?? "",
+      getEnv("OAUTH_REDIRECT_URI") ??
+        "http://localhost:8000/api/auth/google/callback",
+    );
+  }
+  return google;
+}
 
 // Generate a random session ID
 function generateSessionId(): string {
@@ -91,7 +100,7 @@ export function signIn(_request: Request): Response {
       "https://www.googleapis.com/auth/userinfo.profile",
     ];
 
-    const url = google.createAuthorizationURL(state, codeVerifier, scopes);
+    const url = getGoogleClient().createAuthorizationURL(state, codeVerifier, scopes);
 
     const headers = new Headers();
     headers.set("Location", url.toString());
@@ -149,7 +158,7 @@ export async function handleCallback(request: Request): Promise<{
     }
 
     // Exchange code for tokens
-    const tokens = await google.validateAuthorizationCode(code, codeVerifier);
+    const tokens = await getGoogleClient().validateAuthorizationCode(code, codeVerifier);
     const accessToken = tokens.accessToken();
 
     // Create session

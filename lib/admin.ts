@@ -2,6 +2,8 @@
  * Admin authentication utilities
  */
 
+import { getEnv } from "./env.ts";
+
 const ADMIN_EMAILS_KEY = "ADMIN_EMAILS";
 
 /**
@@ -9,7 +11,7 @@ const ADMIN_EMAILS_KEY = "ADMIN_EMAILS";
  * ADMIN_EMAILS should be a comma-separated list of email addresses
  */
 export function getAdminEmails(): string[] {
-  const emails = Deno.env.get(ADMIN_EMAILS_KEY);
+  const emails = getEnv(ADMIN_EMAILS_KEY);
   if (!emails) return [];
   return emails.split(",").map((e) => e.trim().toLowerCase()).filter((e) =>
     e.length > 0

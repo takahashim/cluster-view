@@ -1,5 +1,6 @@
 import { type Client, createClient } from "@libsql/client/web";
 import type { HierarchicalResult, ReportRecord, UserRecord } from "./types.ts";
+import { getEnv } from "./env.ts";
 
 // Session expiry: 7 days (shared constant)
 export const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
@@ -120,8 +121,8 @@ let tursoClient: Client | null = null;
 
 function getTursoClient(): Client {
   if (!tursoClient) {
-    const url = Deno.env.get("TURSO_DATABASE_URL");
-    const authToken = Deno.env.get("TURSO_AUTH_TOKEN");
+    const url = getEnv("TURSO_DATABASE_URL");
+    const authToken = getEnv("TURSO_AUTH_TOKEN");
 
     if (!url) {
       throw new Error("TURSO_DATABASE_URL environment variable is required");
@@ -323,7 +324,7 @@ class TursoStore implements Store {
 }
 
 function isTursoConfigured(): boolean {
-  return !!Deno.env.get("TURSO_DATABASE_URL");
+  return !!getEnv("TURSO_DATABASE_URL");
 }
 
 let storeInstance: Store | null = null;

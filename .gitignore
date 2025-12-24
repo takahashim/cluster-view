@@ -7,6 +7,11 @@
 
 # Fresh build directory
 _fresh/
+# Vite cache
+.vite/
+dist/
+# Wrangler
+.wrangler/
 # npm + other dependencies
 node_modules/
 vendor/

@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cluster-view",
+  "main": "./server.js",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./_fresh/client",
+    "binding": "ASSETS"
+  },
+  // Environment variables are read from .env file by wrangler dev
+  // For production, use: wrangler secret put VARIABLE_NAME
+  "vars": {}
+}
