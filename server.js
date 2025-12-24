@@ -1,12 +1,9 @@
 import server from "./_fresh/server.js";
-import { setCfEnv } from "./lib/env.ts";
+import { runWithEnv } from "./lib/env.ts";
 
 export default {
   fetch(request, env, ctx) {
-    // Set Cloudflare Workers environment variables
-    if (env) {
-      setCfEnv(env);
-    }
-    return server.fetch(request, env, ctx);
+    // Run with Cloudflare Workers environment variables (request-scoped)
+    return runWithEnv(env ?? {}, () => server.fetch(request, env, ctx));
   }
 };
