@@ -1,6 +1,7 @@
 import { define } from "@/utils.ts";
-import { getCurrentUser } from "@/lib/auth.ts";
+import { getCurrentUser, getSessionId } from "@/lib/auth.ts";
 import { isAdmin } from "@/lib/admin.ts";
+import { getStore } from "@/lib/store.ts";
 
 /**
  * Debug endpoint to inspect KV data.
@@ -21,6 +22,18 @@ export const handler = define.handlers({
     }
 
     const kv = await Deno.openKv();
+
+    // Debug auth flow
+    const sessionId = await getSessionId(ctx.req);
+    const store = getStore();
+    const userIdFromSession = sessionId
+      ? await store.getSessionUserId(sessionId)
+      : null;
+    const authDebug = {
+      sessionId: sessionId ? `${sessionId.slice(0, 10)}...` : null,
+      userIdFromSession,
+      storeType: store.constructor.name,
+    };
 
     // Test write/read
     const testKey = ["_debug_test", "write_check"];
@@ -65,14 +78,28 @@ export const handler = define.handlers({
       samples[prefix] = entries.slice(0, 3); // Show first 3 samples
     }
 
+    // Full KV scan - list ALL keys
+    const allKeys: unknown[] = [];
+    const fullIter = kv.list({ prefix: [] });
+    for await (const entry of fullIter) {
+      allKeys.push({
+        key: entry.key,
+        valueType: typeof entry.value,
+      });
+      if (allKeys.length >= 100) break; // Limit to first 100
+    }
+
     const summary = {
       currentUser: {
         id: user.id,
         email: user.email,
         name: user.name,
       },
+      authDebug,
       writeTestResult,
       entryCounts: counts,
+      allKeysCount: allKeys.length,
+      allKeys: allKeys.slice(0, 20), // Show first 20
       samples,
     };
 
