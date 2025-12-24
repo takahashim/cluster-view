@@ -7,8 +7,10 @@ export default defineConfig({
     rollupOptions: {
       onwarn(warning, warn) {
         // Suppress sourcemap warnings from @opentelemetry/api
-        if (warning.message?.includes("sourcemap") &&
-            warning.message?.includes("@opentelemetry")) {
+        if (
+          warning.message?.includes("sourcemap") &&
+          warning.message?.includes("@opentelemetry")
+        ) {
           return;
         }
         warn(warning);

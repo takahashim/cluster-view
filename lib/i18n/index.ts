@@ -9,7 +9,7 @@
  * 3. Add locale to "locales" array in defineI18n config
  */
 
-import { defineI18n, interpolate, type I18nStateOf } from "island-i18n";
+import { defineI18n, type I18nStateOf, interpolate } from "island-i18n";
 import ja from "./translations/ja.json" with { type: "json" };
 import en from "./translations/en.json" with { type: "json" };
 
