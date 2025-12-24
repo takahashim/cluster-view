@@ -22,6 +22,17 @@ export const handler = define.handlers({
 
     const kv = await Deno.openKv();
 
+    // Test write/read
+    const testKey = ["_debug_test", "write_check"];
+    const testValue = { timestamp: new Date().toISOString(), userId: user.id };
+    await kv.set(testKey, testValue);
+    const readBack = await kv.get(testKey);
+    const writeTestResult = {
+      written: testValue,
+      readBack: readBack.value,
+      success: JSON.stringify(readBack.value) === JSON.stringify(testValue),
+    };
+
     // Count entries by prefix
     const prefixes = [
       "reports",
@@ -30,6 +41,9 @@ export const handler = define.handlers({
       "share_tokens",
       "user_reports",
       "report_data",
+      // @deno/kv-oauth prefixes
+      "site_sessions",
+      "oauth_sessions",
     ];
     const counts: Record<string, number> = {};
     const samples: Record<string, unknown[]> = {};
@@ -57,6 +71,7 @@ export const handler = define.handlers({
         email: user.email,
         name: user.name,
       },
+      writeTestResult,
       entryCounts: counts,
       samples,
     };
