@@ -24,7 +24,8 @@ function getGoogleClient(): Google {
   return new Google(
     getEnv("GOOGLE_CLIENT_ID") ?? "",
     getEnv("GOOGLE_CLIENT_SECRET") ?? "",
-    getEnv("OAUTH_REDIRECT_URI") ?? "http://localhost:8000/api/auth/google/callback",
+    getEnv("OAUTH_REDIRECT_URI") ??
+      "http://localhost:8000/api/auth/google/callback",
   );
 }
 
