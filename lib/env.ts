@@ -1,29 +1,30 @@
 /**
  * Cross-platform environment variable access
- * Works on Deno and Cloudflare Workers (using AsyncLocalStorage)
+ * Works on Deno and Cloudflare Workers
  */
 
-import { AsyncLocalStorage } from "node:async_hooks";
-
-const envStorage = new AsyncLocalStorage<Record<string, string>>();
+// globalThis is shared across all modules in the same V8 isolate
+const ENV_KEY = "__CF_ENV__";
 
 /**
- * Run a function with Cloudflare Workers environment variables
- * Use this to wrap request handlers
+ * Set the Cloudflare Workers environment (call from server.js entry point)
  */
-export function runWithEnv<T>(env: Record<string, string>, fn: () => T): T {
-  return envStorage.run(env, fn);
+export function setCfEnv(env: Record<string, unknown>): void {
+  (globalThis as Record<string, unknown>)[ENV_KEY] = env;
 }
 
 /**
  * Get environment variable value
- * Tries: AsyncLocalStorage (CF Workers) → Deno.env
+ * Tries: Cloudflare Workers env (globalThis) → Deno.env
  */
 export function getEnv(key: string): string | undefined {
-  // Cloudflare Workers (AsyncLocalStorage - request scoped)
-  const store = envStorage.getStore();
-  if (store?.[key] !== undefined) {
-    return store[key];
+  // Cloudflare Workers (stored in globalThis)
+  const cfEnv = (globalThis as Record<string, unknown>)[ENV_KEY] as
+    | Record<string, unknown>
+    | undefined;
+  if (cfEnv && key in cfEnv) {
+    const value = cfEnv[key];
+    return typeof value === "string" ? value : undefined;
   }
 
   // Deno

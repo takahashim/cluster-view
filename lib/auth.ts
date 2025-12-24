@@ -19,19 +19,13 @@ function isProduction(): boolean {
   return false;
 }
 
-// Google OAuth client (lazy initialization for Cloudflare Workers compatibility)
-let google: Google | null = null;
-
+// Google OAuth client (created fresh each request for correct env access)
 function getGoogleClient(): Google {
-  if (!google) {
-    google = new Google(
-      getEnv("GOOGLE_CLIENT_ID") ?? "",
-      getEnv("GOOGLE_CLIENT_SECRET") ?? "",
-      getEnv("OAUTH_REDIRECT_URI") ??
-        "http://localhost:8000/api/auth/google/callback",
-    );
-  }
-  return google;
+  return new Google(
+    getEnv("GOOGLE_CLIENT_ID") ?? "",
+    getEnv("GOOGLE_CLIENT_SECRET") ?? "",
+    getEnv("OAUTH_REDIRECT_URI") ?? "http://localhost:8000/api/auth/google/callback",
+  );
 }
 
 // Generate a random session ID

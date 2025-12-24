@@ -7,8 +7,9 @@
   "assets": {
     "directory": "./_fresh/client",
     "binding": "ASSETS"
-  },
-  // Environment variables are read from .env file by wrangler dev
-  // For production, use: wrangler secret put VARIABLE_NAME
-  "vars": {}
+  }
+  // Environment variables:
+  // - Set via Dashboard or `wrangler secret put <NAME>`
+  // - GOOGLE_CLIENT_ID, OAUTH_REDIRECT_URI (plaintext OK)
+  // - GOOGLE_CLIENT_SECRET, ADMIN_EMAILS, TURSO_DATABASE_URL, TURSO_AUTH_TOKEN (secrets)
 }
